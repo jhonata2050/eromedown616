@@ -4,100 +4,126 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
-    <title>Painel Executivo | Gestão & Analytics</title>
+    <title>Painel Executivo | Gestão, Analytics & Geo-Inteligência</title>
     <link rel="stylesheet" href="/static/style.css">
+    <!-- jsVectorMap & ApexCharts CDN for Enterprise Analytics -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world-merc.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <style>
         :root {
-            --panel-bg: #0d1117;
-            --panel-card: rgba(22, 27, 34, 0.9);
-            --panel-border: rgba(48, 54, 61, 0.8);
+            --panel-bg: #070a0f;
+            --panel-card: rgba(15, 23, 42, 0.75);
+            --panel-card-hover: rgba(30, 41, 59, 0.85);
+            --panel-border: rgba(56, 189, 248, 0.15);
+            --panel-border-bright: rgba(56, 189, 248, 0.35);
             --accent-cyan: #38bdf8;
-            --accent-green: #34d399;
+            --accent-emerald: #10b981;
+            --accent-indigo: #6366f1;
             --accent-purple: #c084fc;
+            --accent-rose: #f43f5e;
+            --accent-amber: #f59e0b;
         }
 
         body {
-            background: #090d13;
-            color: #e6edf3;
-            padding: 20px 15px;
+            background: 
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                #070a0f !important;
+            color: #e2e8f0;
+            padding: 24px 16px;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            min-height: 100vh;
         }
 
         .admin-wrapper {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1360px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 22px;
             margin: 0 auto;
         }
 
-        /* Top Header */
+        /* Top Executive Header */
         .admin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             background: var(--panel-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            padding: 18px 24px;
-            border-radius: 14px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            padding: 16px 26px;
+            border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 30px rgba(56, 189, 248, 0.05);
         }
 
         .header-brand {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 16px;
         }
 
-        .status-pill {
+        .pulse-box {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(52, 211, 153, 0.12);
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.12);
             color: #34d399;
-            border: 1px solid rgba(52, 211, 153, 0.3);
+            border: 1px solid rgba(16, 185, 129, 0.3);
             font-size: 11px;
             font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            letter-spacing: 0.5px;
+            padding: 5px 12px;
+            border-radius: 30px;
+            letter-spacing: 0.6px;
             text-transform: uppercase;
         }
 
-        .status-pill::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: #34d399;
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
             border-radius: 50%;
-            box-shadow: 0 0 8px #34d399;
+            box-shadow: 0 0 10px #10b981;
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .btn-nav {
-            padding: 8px 16px;
-            border-radius: 8px;
+        .btn-action-top {
+            padding: 9px 16px;
+            border-radius: 10px;
             font-size: 13px;
             font-weight: 600;
             text-decoration: none;
-            background: rgba(255, 255, 255, 0.05);
-            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.04);
+            color: #cbd5e1;
             border: 1px solid var(--panel-border);
-            transition: all 0.2s;
+            transition: all 0.25s ease;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 7px;
+            cursor: pointer;
         }
 
-        .btn-nav:hover {
+        .btn-action-top:hover {
             color: white;
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(56, 189, 248, 0.15);
+            border-color: #38bdf8;
+            transform: translateY(-1px);
         }
 
         .btn-logout {
@@ -106,11 +132,16 @@
             border-color: rgba(239, 68, 68, 0.3) !important;
         }
 
-        /* Sistema de Abas */
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.2) !important;
+            border-color: #ef4444 !important;
+        }
+
+        /* Tab Navigation */
         .tab-bar {
             display: flex;
             gap: 8px;
-            border-bottom: 1px solid var(--panel-border);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             padding-bottom: 8px;
         }
 
@@ -118,144 +149,86 @@
             background: transparent;
             border: 1px solid transparent;
             color: #94a3b8;
-            padding: 10px 20px;
-            border-radius: 8px;
+            padding: 12px 22px;
+            border-radius: 10px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s ease;
             font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .tab-btn.active {
             color: white;
-            background: rgba(56, 189, 248, 0.12);
-            border-color: rgba(56, 189, 248, 0.35);
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+            background: rgba(56, 189, 248, 0.14);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.2);
         }
 
         .tab-btn:hover:not(.active) {
-            color: #cbd5e1;
-            background: rgba(255, 255, 255, 0.03);
+            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.04);
         }
 
-        /* Conteúdo das Abas */
         .tab-pane {
             display: none;
             flex-direction: column;
-            gap: 20px;
+            gap: 22px;
         }
 
         .tab-pane.active {
             display: flex;
         }
 
-        /* Grid de KPIs */
-        .kpi-grid {
+        /* KPI Cards Grid */
+        .kpi-deck {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 16px;
         }
 
-        .kpi-card {
+        .kpi-card-pro {
             background: var(--panel-card);
+            backdrop-filter: blur(16px);
             border: 1px solid var(--panel-border);
-            border-radius: 12px;
-            padding: 22px;
+            border-radius: 16px;
+            padding: 22px 20px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
             position: relative;
             overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        .kpi-card::after {
+        .kpi-card-pro:hover {
+            transform: translateY(-2px);
+            border-color: var(--panel-border-bright);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+        }
+
+        .kpi-card-pro::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
-            height: 100%;
+            right: 0;
+            height: 3px;
         }
 
-        .kpi-card.cyan::after { background: var(--accent-cyan); }
-        .kpi-card.green::after { background: var(--accent-green); }
-        .kpi-card.purple::after { background: var(--accent-purple); }
-        .kpi-card.rose::after { background: #fb7185; }
-        .kpi-card.blue::after { background: #3b82f6; }
-        .kpi-card.amber::after { background: #f59e0b; }
-        .kpi-card.emerald::after { background: #10b981; }
+        .kpi-card-pro.cyan::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+        .kpi-card-pro.emerald::before { background: linear-gradient(90deg, #059669, #10b981); }
+        .kpi-card-pro.indigo::before { background: linear-gradient(90deg, #4f46e5, #818cf8); }
+        .kpi-card-pro.rose::before { background: linear-gradient(90deg, #e11d48, #fb7185); }
+        .kpi-card-pro.amber::before { background: linear-gradient(90deg, #d97706, #f59e0b); }
 
-        .section-header-badge {
-            font-size: 13px;
-            font-weight: 700;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
+        .kpi-head {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 12px 0 6px 0;
-        }
-
-        .bar-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.06);
-            border-radius: 999px;
-            overflow: hidden;
-            margin-top: 6px;
-        }
-
-        .bar-fill {
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
-        }
-
-        .bar-fill-green {
-            height: 100%;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #34d399, #10b981);
-        }
-
-        .trend-chart {
-            display: flex;
-            align-items: flex-end;
             justify-content: space-between;
-            gap: 12px;
-            height: 120px;
-            padding: 16px 8px 4px 8px;
-        }
-
-        .trend-col {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 6px;
-            height: 100%;
-            justify-content: flex-end;
-        }
-
-        .trend-bar {
-            width: 100%;
-            max-width: 32px;
-            background: linear-gradient(180deg, #38bdf8 0%, rgba(56, 189, 248, 0.25) 100%);
-            border-radius: 4px 4px 0 0;
-            min-height: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .trend-label {
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        .trend-val {
-            font-size: 11px;
-            font-weight: 700;
-            color: #f1f5f9;
         }
 
         .kpi-title {
@@ -263,144 +236,264 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            color: #64748b;
-        }
-
-        .kpi-number {
-            font-size: 34px;
-            font-weight: 800;
-            color: white;
-            line-height: 1;
-        }
-
-        .kpi-footer {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
             color: #94a3b8;
         }
 
-        /* Cartões de Conteúdo */
-        .data-card {
+        .kpi-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .kpi-badge.up {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .kpi-badge.neutral {
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1;
+            letter-spacing: -0.5px;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Glassmorphism Containers */
+        .glass-box {
             background: var(--panel-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            border-radius: 14px;
+            border-radius: 18px;
             padding: 24px;
             display: flex;
             flex-direction: column;
             gap: 18px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
 
-        .data-card-header {
+        .glass-box-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--panel-border);
-            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 14px;
         }
 
-        .data-card-title {
+        .glass-title {
             font-size: 16px;
             font-weight: 700;
-            color: white;
+            color: #ffffff;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
-        /* Listas e Tabelas */
-        .country-row {
+        /* Map Container */
+        #world-map {
+            width: 100%;
+            height: 380px;
+            border-radius: 12px;
+            background: #090e17;
+            position: relative;
+        }
+
+        .jvm-tooltip {
+            background: #0f172a !important;
+            border: 1px solid rgba(56, 189, 248, 0.4) !important;
+            border-radius: 10px !important;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8) !important;
+            padding: 10px 14px !important;
+            color: #fff !important;
+            font-family: inherit !important;
+        }
+
+        .map-legend {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 10px 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-            font-size: 14px;
-        }
-
-        .country-row:last-child { border-bottom: none; }
-
-        .badge-country {
-            background: rgba(56, 189, 248, 0.12);
-            color: #38bdf8;
-            font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 6px;
+            gap: 16px;
+            background: rgba(10, 15, 26, 0.7);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 10px 16px;
             font-size: 12px;
+            color: #94a3b8;
         }
 
-        .download-row {
+        .legend-bar {
+            flex: 1;
+            height: 6px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #0e7490 0%, #06b6d4 50%, #38bdf8 100%);
+            margin: 0 10px;
+        }
+
+        /* Region Breakdown */
+        .region-card-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .region-card-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(56, 189, 248, 0.25);
+        }
+
+        .region-card-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 12px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 600;
         }
 
-        .btn-open-video {
+        .progress-track {
+            width: 100%;
+            height: 7px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #0284c7, #38bdf8);
+            transition: width 0.8s ease;
+        }
+
+        /* Tables */
+        .elite-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .elite-table th {
+            padding: 12px 14px;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .elite-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #e2e8f0;
+        }
+
+        .elite-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .rank-pill {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.06);
+            color: #94a3b8;
+        }
+
+        .rank-pill.gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; }
+        .rank-pill.silver { background: linear-gradient(135deg, #94a3b8, #64748b); color: #000; }
+        .rank-pill.bronze { background: linear-gradient(135deg, #b45309, #78350f); color: #fff; }
+
+        .tag-iso {
+            font-family: monospace;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
             background: rgba(56, 189, 248, 0.12);
             color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: 6px;
-            font-size: 12px;
             font-weight: 700;
-            text-decoration: none;
-            transition: all 0.2s;
-            white-space: nowrap;
+            border: 1px solid rgba(56, 189, 248, 0.25);
         }
 
-        .btn-open-video:hover {
-            background: #0284c7;
-            color: white;
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-            transform: translateY(-1px);
-        }
-
-        .btn-copy-link {
+        .chart-toggle-btn {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--panel-border);
             color: #94a3b8;
-            padding: 6px 8px;
-            border-radius: 6px;
-            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 8px;
             font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.2s;
         }
 
-        .btn-copy-link:hover {
+        .chart-toggle-btn.active {
+            background: #0284c7;
             color: white;
-            background: rgba(255, 255, 255, 0.1);
+            border-color: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
         }
 
-        /* Formulários */
-        .config-box {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .input-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #cbd5e1;
+        .download-item-stream {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 6px;
+            align-items: center;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.2s;
         }
 
-        .input-label small {
-            color: #64748b;
-            font-weight: 400;
+        .download-item-stream:hover {
+            border-color: rgba(56, 189, 248, 0.2);
+            background: rgba(255, 255, 255, 0.04);
         }
 
+        /* Responsive Layout Grid */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Estilos herdados de abas ads e security */
         .code-textarea {
             width: 100%;
             height: 85px;
@@ -414,11 +507,7 @@
             outline: none;
             transition: border-color 0.2s;
         }
-
-        .code-textarea:focus {
-            border-color: var(--accent-cyan);
-        }
-
+        .code-textarea:focus { border-color: var(--accent-cyan); }
         .text-input {
             width: 100%;
             padding: 12px 14px;
@@ -429,11 +518,7 @@
             font-size: 14px;
             outline: none;
         }
-
-        .text-input:focus {
-            border-color: var(--accent-cyan);
-        }
-
+        .text-input:focus { border-color: var(--accent-cyan); }
         .btn-primary {
             background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
             color: white;
@@ -449,25 +534,44 @@
             gap: 8px;
             width: fit-content;
         }
-
         .btn-primary:hover {
             box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
             transform: translateY(-1px);
         }
-
-        .alert-success {
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: #6ee7b7;
-            padding: 12px 18px;
-            border-radius: 10px;
-            font-size: 14px;
+        .input-label {
+            font-size: 13px;
             font-weight: 600;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .input-label small { color: #64748b; font-weight: 400; }
+        .config-box { display: flex; flex-direction: column; gap: 16px; }
+        .data-card {
+            background: var(--panel-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .data-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 12px;
+        }
+        .data-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-
         .url-box {
             background: #090d13;
             border: 1px dashed rgba(56, 189, 248, 0.4);
@@ -481,24 +585,74 @@
             font-size: 14px;
             color: #38bdf8;
         }
+        .btn-open-video {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .btn-open-video:hover {
+            background: #0284c7;
+            color: white;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+            transform: translateY(-1px);
+        }
+        .btn-copy-link {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: #94a3b8;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .btn-copy-link:hover { color: white; background: rgba(255, 255, 255, 0.1); }
+        .alert-success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
     <div class="admin-wrapper">
-        <!-- Topo Executivo -->
+        <!-- Top Executive Header Bar -->
         <header class="admin-header">
             <div class="header-brand">
-                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">
-                    🛡️ Core <span style="color: #38bdf8;">Shield</span> Management
+                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin: 0; display: flex; align-items: center; gap: 10px;">
+                    🛡️ Core <span style="color: #38bdf8;">Shield</span> Executive Console
                 </h2>
-                <span class="status-pill">Online & Protegido</span>
+                <div class="pulse-box">
+                    <span class="pulse-dot"></span>
+                    <span>Nó de Produção Ativo</span>
+                </div>
             </div>
 
             <div class="header-actions">
-                <a href="/" target="_blank" class="btn-nav">
+                <button type="button" onclick="refreshDashboard()" class="btn-action-top" id="btnRefresh" title="Atualizar Métricas em Tempo Real">
+                    <span id="refreshIcon">🔄</span> <span>Atualizar Dados</span>
+                </button>
+                <a href="/" target="_blank" class="btn-action-top">
                     <span>🌐</span> Ver Site
                 </a>
-                <a href="/{{ current_slug }}?logout=1" class="btn-nav btn-logout">
+                <a href="/{{ current_slug }}?logout=1" class="btn-action-top btn-logout">
                     <span>🚪</span> Sair
                 </a>
             </div>
@@ -512,182 +666,311 @@
 
         <!-- Navegação por Abas -->
         <nav class="tab-bar">
-            <button class="tab-btn active" onclick="switchTab('analytics')">📊 Visão Geral & Métricas</button>
-            <button class="tab-btn" onclick="switchTab('ads')">📢 Anúncios & Monetização</button>
-            <button class="tab-btn" onclick="switchTab('security')">🔒 Segurança & Rota Oculta</button>
+            <button class="tab-btn active" onclick="switchTab('analytics')">
+                <span>🗺️</span> <span>Geo-Analytics & Monitoramento</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('ads')">
+                <span>📢</span> <span>Anúncios & Monetização</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('security')">
+                <span>🔒</span> <span>Segurança & Rota Oculta</span>
+            </button>
         </nav>
 
-        <!-- ABA 1: ANALYTICS & MÉTRICAS -->
+        <!-- ABA 1: ANALYTICS & MÉTRICAS COM MAPA GLOBAL INTERATIVO -->
         <div id="tab-analytics" class="tab-pane active">
-            <!-- SEÇÃO: VISITANTES (DIÁRIO, SEMANAL, MENSAL, TOTAL) -->
-            <div class="section-header-badge">
-                <span>👥</span> Tráfego & Visitantes
+
+            <!-- DECK DE KPIS PRINCIPAIS -->
+            <div class="kpi-deck">
+                <!-- Visitas Hoje -->
+                <div class="kpi-card-pro cyan">
+                    <div class="kpi-head">
+                        <span class="kpi-title">Visitantes Hoje</span>
+                        <span class="kpi-badge {% if stats.growth_visits >= 0 %}up{% else %}neutral{% endif %}">
+                            {{ "+" if stats.growth_visits >= 0 else "" }}{{ stats.growth_visits }}% vs ontem
+                        </span>
+                    </div>
+                    <div class="kpi-value" id="kpi-today-visits">{{ "{:,}".format(stats.today_visits) }}</div>
+                    <div class="kpi-sub">
+                        <span>👥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_visits) }}</strong></span>
+                        <span>•</span>
+                        <span>Total: <strong>{{ "{:,}".format(stats.total_visits) }}</strong></span>
+                    </div>
+                </div>
+
+                <!-- Downloads Hoje -->
+                <div class="kpi-card-pro emerald">
+                    <div class="kpi-head">
+                        <span class="kpi-title">Downloads Hoje</span>
+                        <span class="kpi-badge {% if stats.growth_downloads >= 0 %}up{% else %}neutral{% endif %}">
+                            {{ "+" if stats.growth_downloads >= 0 else "" }}{{ stats.growth_downloads }}% vs ontem
+                        </span>
+                    </div>
+                    <div class="kpi-value" id="kpi-today-downloads">{{ "{:,}".format(stats.today_downloads) }}</div>
+                    <div class="kpi-sub">
+                        <span>📥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_downloads) }}</strong></span>
+                        <span>•</span>
+                        <span>Total: <strong>{{ "{:,}".format(stats.total_downloads) }}</strong></span>
+                    </div>
+                </div>
+
+                <!-- Conversão -->
+                <div class="kpi-card-pro amber">
+                    <div class="kpi-head">
+                        <span class="kpi-title">Taxa de Conversão</span>
+                        <span class="kpi-badge neutral">Hoje</span>
+                    </div>
+                    <div class="kpi-value" id="kpi-conversion-today">{{ stats.conversion_rate_today }}%</div>
+                    <div class="kpi-sub">
+                        <span>Taxa Histórica Global: <strong>{{ stats.conversion_rate_global }}%</strong></span>
+                    </div>
+                </div>
+
+                <!-- Tráfego Semanal & Mensal -->
+                <div class="kpi-card-pro indigo">
+                    <div class="kpi-head">
+                        <span class="kpi-title">Ciclo Semanal</span>
+                        <span class="kpi-badge neutral">7 Dias</span>
+                    </div>
+                    <div class="kpi-value">{{ "{:,}".format(stats.weekly_visits) }}</div>
+                    <div class="kpi-sub">
+                        <span>Últimos 30 Dias: <strong>{{ "{:,}".format(stats.monthly_visits) }}</strong> acessos</span>
+                    </div>
+                </div>
+
+                <!-- Usuários Ativos Agora -->
+                <div class="kpi-card-pro rose">
+                    <div class="kpi-head">
+                        <span class="kpi-title">Ativos em Tempo Real</span>
+                        <div class="pulse-dot"></div>
+                    </div>
+                    <div class="kpi-value" id="kpi-active-now">{{ stats.active_now }}</div>
+                    <div class="kpi-sub">
+                        <span>Usuários navegando nos últimos 5 min</span>
+                    </div>
+                </div>
             </div>
-            <div class="kpi-grid">
-                <div class="kpi-card cyan">
-                    <span class="kpi-title">Visitas Hoje</span>
-                    <span class="kpi-number">{{ stats.today_visits }}</span>
-                    <span class="kpi-footer">Acessos únicos nas últimas 24h</span>
-                </div>
 
-                <div class="kpi-card blue">
-                    <span class="kpi-title">Visitas Semanal</span>
-                    <span class="kpi-number">{{ stats.weekly_visits }}</span>
-                    <span class="kpi-footer">Últimos 7 dias acumulados</span>
-                </div>
-
-                <div class="kpi-card purple">
-                    <span class="kpi-title">Visitas Mensal</span>
-                    <span class="kpi-number">{{ stats.monthly_visits }}</span>
-                    <span class="kpi-footer">Últimos 30 dias acumulados</span>
-                </div>
-
-                <div class="kpi-card cyan">
-                    <span class="kpi-title">Total Geral</span>
-                    <span class="kpi-number">{{ stats.total_visits }}</span>
-                    <span class="kpi-footer">Histórico total de acessos</span>
-                </div>
-            </div>
-
-            <!-- SEÇÃO: DOWNLOADS (DIÁRIO, SEMANAL, MENSAL, TOTAL) -->
-            <div class="section-header-badge" style="margin-top: 20px;">
-                <span>📥</span> Vídeos Baixados & Conversão
-            </div>
-            <div class="kpi-grid">
-                <div class="kpi-card green">
-                    <span class="kpi-title">Downloads Hoje</span>
-                    <span class="kpi-number">{{ stats.today_downloads }}</span>
-                    <span class="kpi-footer">Arquivos baixados hoje</span>
-                </div>
-
-                <div class="kpi-card emerald">
-                    <span class="kpi-title">Downloads Semanal</span>
-                    <span class="kpi-number">{{ stats.weekly_downloads }}</span>
-                    <span class="kpi-footer">Últimos 7 dias</span>
-                </div>
-
-                <div class="kpi-card green">
-                    <span class="kpi-title">Downloads Mensal</span>
-                    <span class="kpi-number">{{ stats.monthly_downloads }}</span>
-                    <span class="kpi-footer">Últimos 30 dias</span>
-                </div>
-
-                <div class="kpi-card amber">
-                    <span class="kpi-title">Taxa de Conversão</span>
-                    <span class="kpi-number">
-                        {% if stats.total_visits > 0 %}
-                            {{ "%.1f"|format((stats.total_downloads / stats.total_visits) * 100) }}%
-                        {% else %}
-                            0%
-                        {% endif %}
-                    </span>
-                    <span class="kpi-footer">Total: <strong>{{ stats.total_downloads }}</strong> vídeos salvos</span>
-                </div>
-            </div>
-
-            <!-- GRÁFICO VISUAL DOS ÚLTIMOS 7 DIAS -->
-            {% if stats.trend_visits %}
-            <div class="data-card" style="margin-top: 10px;">
-                <div class="data-card-header">
-                    <span class="data-card-title">📈 Tendência Diária de Acessos (Últimos 7 Dias)</span>
-                    <small style="color: #64748b;">Evolução de Tráfego</small>
-                </div>
-                <div class="trend-chart">
-                    {% for t in stats.trend_visits %}
-                        <div class="trend-col">
-                            <span class="trend-val">{{ t.total }}</span>
-                            <div class="trend-bar" style="height: {{ (t.total * 8) if (t.total * 8) <= 80 else 80 }}px;"></div>
-                            <span class="trend-label">{{ t.dia }}</span>
+            <!-- SEÇÃO 1: MAPA GLOBAL DE CALOR + DISTRIBUIÇÃO REGIONAL -->
+            <div class="grid-2">
+                <!-- Card do Mapa Global -->
+                <div class="glass-box">
+                    <div class="glass-box-header">
+                        <div class="glass-title">
+                            <span>🗺️</span>
+                            <span>Densidade Geográfica & Tráfego Mundial</span>
                         </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- SEGREGAÇÃO POR PAÍS (DUAS COLUNAS: VISITANTES + DOWNLOADS) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-top: 10px;">
-                <!-- Visitantes por País -->
-                <div class="data-card">
-                    <div class="data-card-header">
-                        <span class="data-card-title">🌍 Visitantes por País</span>
-                        <small style="color: #64748b;">Cloudflare CF-IPCountry</small>
+                        <div style="font-size: 12px; color: #38bdf8; font-weight: 600;">
+                            <span>Origem por IP Cloudflare</span>
+                        </div>
                     </div>
 
-                    {% if stats.top_countries %}
-                        <div>
-                            {% for c in stats.top_countries %}
-                                {% set pct = (c.count / (stats.total_visits if stats.total_visits > 0 else 1) * 100) | round(1) %}
-                                <div style="padding: 10px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                                        <span>📍 <strong>{{ c.country }}</strong></span>
-                                        <span style="color: #38bdf8; font-weight: 700;">{{ c.count }} acessos ({{ pct }}%)</span>
-                                    </div>
-                                    <div class="bar-container">
-                                        <div class="bar-fill" style="width: {{ pct }}%;"></div>
-                                    </div>
+                    <!-- Container do jsVectorMap -->
+                    <div id="world-map"></div>
+
+                    <!-- Legenda de Calor -->
+                    <div class="map-legend">
+                        <span>Densidade Baixa</span>
+                        <div class="legend-bar"></div>
+                        <span style="color: #38bdf8; font-weight: 700;">Alta Densidade de Visitantes</span>
+                    </div>
+                </div>
+
+                <!-- Desempenho por Regiões e Continentes -->
+                <div class="glass-box">
+                    <div class="glass-box-header">
+                        <div class="glass-title">
+                            <span>🌐</span>
+                            <span>Tráfego por Continente & Região</span>
+                        </div>
+                        <small style="color: #64748b;">Volume e Participação</small>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        {% for reg in stats.regions_list %}
+                            <div class="region-card-item">
+                                <div class="region-card-top">
+                                    <span style="display: flex; align-items: center; gap: 8px;">
+                                        {% if 'Latina' in reg.name %}🌎{% elif 'Europa' in reg.name %}🌍{% elif 'Norte' in reg.name %}🌎{% elif 'Ásia' in reg.name %}🌏{% else %}🌍{% endif %}
+                                        <strong>{{ reg.name }}</strong>
+                                    </span>
+                                    <span style="color: #38bdf8; font-weight: 700;">
+                                        {{ reg.visits }} visitas ({{ reg.pct }}%)
+                                    </span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width: {{ reg.pct }}%;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #64748b;">
+                                    <span>Downloads gerados: <strong style="color: #34d399;">{{ reg.downloads }}</strong></span>
+                                    <span>Conversão: <strong>{{ "%.1f"|format((reg.downloads / (reg.visits if reg.visits > 0 else 1)) * 100) }}%</strong></span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEÇÃO 2: GRÁFICO TEMPORAL EM TEMPO REAL + DONUT DE DISPOSITIVOS -->
+            <div class="grid-2">
+                <!-- Gráfico de Séries Temporais (ApexCharts Spline) -->
+                <div class="glass-box">
+                    <div class="glass-box-header">
+                        <div class="glass-title">
+                            <span>📈</span>
+                            <span>Fluxo de Tráfego & Downloads</span>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" class="chart-toggle-btn active" id="btnChart7d" onclick="toggleTimeseries('7d')">7 Dias</button>
+                            <button type="button" class="chart-toggle-btn" id="btnChart24h" onclick="toggleTimeseries('24h')">24 Horas</button>
+                        </div>
+                    </div>
+                    <div id="chart-timeseries" style="min-height: 290px;"></div>
+                </div>
+
+                <!-- Gráfico Donut de Dispositivos & Sistemas -->
+                <div class="glass-box">
+                    <div class="glass-box-header">
+                        <div class="glass-title">
+                            <span>📱</span>
+                            <span>Dispositivos & Sistemas Operacionais</span>
+                        </div>
+                        <small style="color: #64748b;">Mobile vs Desktop</small>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: center;">
+                        <div id="chart-devices" style="min-height: 220px;"></div>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Top Sistemas:</div>
+                            {% for os in stats.os_data %}
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 6px 10px; background: rgba(255,255,255,0.02); border-radius: 8px;">
+                                    <span>
+                                        {% if 'Android' in os.name %}🤖{% elif 'iOS' in os.name or 'iPhone' in os.name %}🍏{% elif 'Windows' in os.name %}🪟{% elif 'mac' in os.name %}💻{% else %}🐧{% endif %}
+                                        <strong>{{ os.name }}</strong>
+                                    </span>
+                                    <span style="color: #38bdf8; font-weight: 700;">{{ os.count }}</span>
                                 </div>
                             {% endfor %}
                         </div>
-                    {% else %}
-                        <p style="color: #64748b; font-size: 13px;">Ainda não há dados geográficos suficientes registrados.</p>
-                    {% endif %}
-                </div>
-
-                <!-- Downloads por País -->
-                <div class="data-card">
-                    <div class="data-card-header">
-                        <span class="data-card-title">📥 Downloads por País</span>
-                        <small style="color: #64748b;">Onde mais baixam</small>
                     </div>
 
-                    {% if stats.top_download_countries %}
-                        <div>
-                            {% for c in stats.top_download_countries %}
-                                {% set pct = (c.count / (stats.total_downloads if stats.total_downloads > 0 else 1) * 100) | round(1) %}
-                                <div style="padding: 10px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
-                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
-                                        <span>📍 <strong>{{ c.country }}</strong></span>
-                                        <span style="color: #34d399; font-weight: 700;">{{ c.count }} downloads ({{ pct }}%)</span>
-                                    </div>
-                                    <div class="bar-container">
-                                        <div class="bar-fill-green" style="width: {{ pct }}%;"></div>
-                                    </div>
-                                </div>
-                            {% endfor %}
+                    <div style="display: flex; justify-content: space-around; background: rgba(0,0,0,0.25); padding: 12px; border-radius: 10px; font-size: 12px; border: 1px solid rgba(255,255,255,0.04);">
+                        <div style="text-align: center;">
+                            <div style="color: #64748b;">Mobile</div>
+                            <div style="font-weight: 800; color: #38bdf8; font-size: 16px;">{{ stats.device_stats.mobile_pct }}%</div>
                         </div>
-                    {% else %}
-                        <p style="color: #64748b; font-size: 13px;">Ainda não há downloads por país suficientes.</p>
-                    {% endif %}
+                        <div style="text-align: center;">
+                            <div style="color: #64748b;">Desktop</div>
+                            <div style="font-weight: 800; color: #10b981; font-size: 16px;">{{ stats.device_stats.desktop_pct }}%</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="color: #64748b;">Tablet</div>
+                            <div style="font-weight: 800; color: #c084fc; font-size: 16px;">{{ stats.device_stats.tablet_pct }}%</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- SEÇÃO: VÍDEOS MAIS BAIXADOS & ATIVIDADE RECENTE (DUAS COLUNAS) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-top: 10px;">
-                <!-- Top Vídeos Mais Baixados -->
-                <div class="data-card">
-                    <div class="data-card-header">
-                        <span class="data-card-title">🏆 Top Vídeos Mais Baixados</span>
-                        <small style="color: #64748b;">Ranking</small>
+            <!-- SEÇÃO 3: RANKING DETALHADO DE PAÍSES (TABELA EXECUTIVA) -->
+            <div class="glass-box">
+                <div class="glass-box-header">
+                    <div class="glass-title">
+                        <span>🏆</span>
+                        <span>Ranking Detalhado de Países (Geo-Performance)</span>
+                    </div>
+                    <small style="color: #64748b;">Métricas consolidadas de acessos e conversão</small>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="elite-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">Pos</th>
+                                <th>País & Bandeira</th>
+                                <th>ISO</th>
+                                <th>Região</th>
+                                <th>Visitantes</th>
+                                <th style="width: 220px;">Participação no Tráfego</th>
+                                <th>Downloads</th>
+                                <th>Taxa de Conversão</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for c in stats.countries_list %}
+                                <tr>
+                                    <td>
+                                        <span class="rank-pill {% if loop.index == 1 %}gold{% elif loop.index == 2 %}silver{% elif loop.index == 3 %}bronze{% endif %}">
+                                            #{{ loop.index }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
+                                            <span style="font-size: 18px;">{{ c.flag }}</span>
+                                            <span>{{ c.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="tag-iso">{{ c.code }}</span>
+                                    </td>
+                                    <td>
+                                        <span style="color: #94a3b8; font-size: 12px;">{{ c.region }}</span>
+                                    </td>
+                                    <td>
+                                        <strong style="color: #ffffff;">{{ "{:,}".format(c.visits) }}</strong>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <div class="progress-track" style="flex: 1;">
+                                                <div class="progress-fill" style="width: {{ c.visits_pct }}%;"></div>
+                                            </div>
+                                            <span style="font-size: 12px; color: #38bdf8; font-weight: 700; width: 45px; text-align: right;">{{ c.visits_pct }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong style="color: #34d399;">{{ "{:,}".format(c.downloads) }}</strong>
+                                    </td>
+                                    <td>
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: {% if c.conversion > 20 %}#34d399{% elif c.conversion > 10 %}#38bdf8{% else %}#94a3b8{% endif %};">
+                                            {{ c.conversion }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SEÇÃO 4: TOP VÍDEOS MAIS BAIXADOS & FEED EM TEMPO REAL -->
+            <div class="grid-2">
+                <!-- Top Vídeos -->
+                <div class="glass-box">
+                    <div class="glass-box-header">
+                        <div class="glass-title">
+                            <span>🎬</span>
+                            <span>Top Álbuns & Vídeos Mais Baixados</span>
+                        </div>
+                        <small style="color: #64748b;">Mais populares</small>
                     </div>
 
                     {% if stats.top_videos %}
-                        <div style="max-height: 380px; overflow-y: auto;">
+                        <div style="max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
                             {% for v in stats.top_videos %}
-                                <div class="download-row">
-                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 65%;">
-                                        <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ v.title }}">
+                                <div class="download-item-stream">
+                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 70%;">
+                                        <span style="font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ v.title }}">
                                             🎬 {{ v.title }}
                                         </span>
                                         <span style="color: #64748b; font-size: 11px;">
-                                            🔥 <strong>{{ v.count }}x</strong> baixado
+                                            🔥 Baixado <strong style="color: #38bdf8;">{{ v.count }}x</strong> • Último em {{ v.last_download }}
                                         </span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         {% if v.url %}
-                                            <a href="/proxy_download?url={{ v.url }}&title={{ v.title }}" target="_blank" class="btn-open-video" title="Assistir ou Baixar">
+                                            <a href="/proxy_download?url={{ v.url }}&title={{ v.title }}" target="_blank" class="btn-open-video">
                                                 ▶️ Abrir
                                             </a>
-                                            <button type="button" onclick="navigator.clipboard.writeText('{{ v.url }}'); alert('Link direto copiado!');" class="btn-copy-link" title="Copiar URL">
+                                            <button type="button" onclick="navigator.clipboard.writeText('{{ v.url }}'); alert('Link do vídeo copiado!');" class="btn-copy-link" title="Copiar URL">
                                                 📋
                                             </button>
                                         {% endif %}
@@ -696,52 +979,55 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p style="color: #64748b; font-size: 13px;">Nenhum vídeo baixado ainda.</p>
+                        <p style="color: #64748b; font-size: 13px;">Nenhum vídeo registrado no histórico recente.</p>
                     {% endif %}
                 </div>
 
-                <!-- Últimos Downloads em Tempo Real -->
-                <div class="data-card">
-                    <div class="data-card-header">
-                        <span class="data-card-title">⚡ Últimos Downloads (Tempo Real)</span>
-                        <small style="color: #64748b;">Histórico Recente</small>
+                <!-- Feed Recente em Tempo Real -->
+                <div class="glass-box">
+                    <div class="glass-box-header">
+                        <div class="glass-title">
+                            <span>⚡</span>
+                            <span>Downloads Recentes em Tempo Real</span>
+                        </div>
+                        <span class="pulse-box" style="padding: 3px 8px; font-size: 10px;">Ao Vivo</span>
                     </div>
 
                     {% if stats.recent_downloads %}
-                        <div style="max-height: 380px; overflow-y: auto;">
+                        <div style="max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;" id="recent-downloads-feed">
                             {% for d in stats.recent_downloads %}
-                                <div class="download-row">
-                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 60%;">
-                                        <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ d.title }}">
+                                <div class="download-item-stream">
+                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 70%;">
+                                        <span style="font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ d.title }}">
                                             🎬 {{ d.title }}
                                         </span>
-                                        <span style="color: #64748b; font-size: 11px;">
-                                            📍 {{ d.country }} • 🕒 {{ d.timestamp }}
+                                        <span style="color: #64748b; font-size: 11px; display: flex; align-items: center; gap: 6px;">
+                                            <span>{{ d.country_flag }}</span>
+                                            <span><strong>{{ d.country_name }}</strong></span>
+                                            <span>•</span>
+                                            <span>{{ d.device }}</span>
+                                            <span>•</span>
+                                            <span>🕒 {{ d.timestamp }}</span>
                                         </span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div>
                                         {% if d.url %}
-                                            <a href="/proxy_download?url={{ d.url }}&title={{ d.title }}" target="_blank" class="btn-open-video" title="Assistir ou Baixar o Vídeo">
+                                            <a href="/proxy_download?url={{ d.url }}&title={{ d.title }}" target="_blank" class="btn-open-video">
                                                 ▶️ Abrir
                                             </a>
-                                            <button type="button" onclick="navigator.clipboard.writeText('{{ d.url }}'); alert('Link direto do vídeo copiado!');" class="btn-copy-link" title="Copiar URL original">
-                                                📋
-                                            </button>
-                                        {% else %}
-                                            <span style="color: #475569; font-size: 11px;">(Sem link)</span>
                                         {% endif %}
                                     </div>
                                 </div>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p style="color: #64748b; font-size: 13px;">Nenhum download registrado nas últimas horas.</p>
+                        <p style="color: #64748b; font-size: 13px;">Nenhum download registrado ainda.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
+<!-- ABA 2: ANÚNCIOS & MONETIZAÇÃO -->
 
-        <!-- ABA 2: ANÚNCIOS & MONETIZAÇÃO -->
         <div id="tab-ads" class="tab-pane">
             <div class="data-card">
                 <div class="data-card-header">
@@ -908,14 +1194,280 @@
         </div>
     </div>
 
+
     <script>
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
             
             event.currentTarget.classList.add('active');
-            document.getElementById('tab-' + tabId).classList.add('active');
+            const target = document.getElementById('tab-' + tabId);
+            if (target) {
+                target.classList.add('active');
+                // Se for analytics, disparar resize nos gráficos
+                if (tabId === 'analytics') {
+                    window.dispatchEvent(new Event('resize'));
+                }
+            }
         }
+
+        // Dados globais fornecidos pelo backend
+        const mapDataValues = {{ stats.map_values | tojson }};
+        const countriesList = {{ stats.countries_list | tojson }};
+        const countriesLookup = {};
+        countriesList.forEach(c => { countriesLookup[c.code] = c; });
+
+        const timeseries7d = {{ stats.chart_7d | tojson }};
+        const timeseries24h = {{ stats.chart_24h | tojson }};
+        const deviceStats = {{ stats.device_stats | tojson }};
+
+        // 1. Inicializar Mapa Vetorial Interativo com jsVectorMap
+        let mapInstance = null;
+        try {
+            mapInstance = new jsVectorMap({
+                selector: '#world-map',
+                map: 'world_merc',
+                backgroundColor: 'transparent',
+                draggable: true,
+                zoomButtons: true,
+                zoomOnScroll: false,
+                regionStyle: {
+                    initial: {
+                        fill: '#1e293b',
+                        stroke: '#334155',
+                        strokeWidth: 0.7,
+                        fillOpacity: 1
+                    },
+                    hover: {
+                        fill: '#38bdf8',
+                        cursor: 'pointer'
+                    },
+                    selected: {
+                        fill: '#0284c7'
+                    }
+                },
+                visualizeData: {
+                    scale: ['#0e7490', '#06b6d4', '#38bdf8'],
+                    values: mapDataValues
+                },
+                onRegionTooltipShow(event, tooltip, code) {
+                    const country = countriesLookup[code];
+                    if (country) {
+                        tooltip.text(
+                            `<div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 4px 6px;">
+                                <div style="font-weight: 800; color: #fff; display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
+                                    <span style="font-size: 16px;">${country.flag}</span>
+                                    <span>${country.name}</span>
+                                    <span style="font-size: 10px; opacity: 0.7; font-family: monospace;">(${code})</span>
+                                </div>
+                                <div style="color: #94a3b8; font-size: 11px;">Região: <strong style="color: #e2e8f0;">${country.region}</strong></div>
+                                <div style="color: #38bdf8; font-weight: 700; margin-top: 5px;">👥 ${country.visits.toLocaleString()} acessos (${country.visits_pct}%)</div>
+                                <div style="color: #34d399; font-weight: 700;">📥 ${country.downloads.toLocaleString()} downloads (${country.conversion}% conv.)</div>
+                            </div>`,
+                            true
+                        );
+                    } else {
+                        tooltip.text(
+                            `<div style="padding: 4px 6px; font-size: 12px; color: #94a3b8;">
+                                <strong>${code}</strong>: Sem acessos registrados
+                            </div>`,
+                            true
+                        );
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Erro ao carregar jsVectorMap:", e);
+        }
+
+        // 2. Inicializar Gráfico de Séries Temporais com ApexCharts
+        let chartTimeseries = null;
+        try {
+            const optionsTimeseries = {
+                series: [
+                    {
+                        name: 'Visitantes Únicos',
+                        data: timeseries7d.visits
+                    },
+                    {
+                        name: 'Vídeos Baixados',
+                        data: timeseries7d.downloads
+                    }
+                ],
+                chart: {
+                    type: 'area',
+                    height: 290,
+                    toolbar: { show: false },
+                    animations: { enabled: true, easing: 'easeinout', speed: 800 },
+                    background: 'transparent'
+                },
+                colors: ['#38bdf8', '#10b981'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 3 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.45,
+                        opacityTo: 0.05,
+                        stops: [0, 95, 100]
+                    }
+                },
+                grid: {
+                    borderColor: 'rgba(255, 255, 255, 0.06)',
+                    strokeDashArray: 4,
+                    yaxis: { lines: { show: true } }
+                },
+                xaxis: {
+                    categories: timeseries7d.labels,
+                    labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } },
+                    axisBorder: { show: false },
+                    axisTicks: { show: false }
+                },
+                yaxis: {
+                    labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } }
+                },
+                tooltip: {
+                    theme: 'dark',
+                    x: { show: true },
+                    style: { fontSize: '12px', fontFamily: 'inherit' }
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'right',
+                    labels: { colors: '#94a3b8' }
+                }
+            };
+            chartTimeseries = new ApexCharts(document.querySelector("#chart-timeseries"), optionsTimeseries);
+            chartTimeseries.render();
+        } catch (e) {
+            console.error("Erro ao carregar ApexCharts Timeseries:", e);
+        }
+
+        // Alternar entre 7 Dias e 24 Horas no Gráfico
+        function toggleTimeseries(period) {
+            document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+            if (period === '7d') {
+                document.getElementById('btnChart7d').classList.add('active');
+                if (chartTimeseries) {
+                    chartTimeseries.updateOptions({
+                        xaxis: { categories: timeseries7d.labels },
+                        series: [
+                            { name: 'Visitantes Únicos', data: timeseries7d.visits },
+                            { name: 'Vídeos Baixados', data: timeseries7d.downloads }
+                        ]
+                    });
+                }
+            } else {
+                document.getElementById('btnChart24h').classList.add('active');
+                if (chartTimeseries) {
+                    chartTimeseries.updateOptions({
+                        xaxis: { categories: timeseries24h.labels },
+                        series: [
+                            { name: 'Visitantes Únicos', data: timeseries24h.visits },
+                            { name: 'Vídeos Baixados', data: timeseries24h.downloads }
+                        ]
+                    });
+                }
+            }
+        }
+
+        // 3. Inicializar Gráfico Donut de Dispositivos com ApexCharts
+        let chartDevices = null;
+        try {
+            const optionsDevices = {
+                series: deviceStats.series,
+                labels: deviceStats.labels,
+                chart: {
+                    type: 'donut',
+                    height: 220,
+                    background: 'transparent'
+                },
+                colors: ['#38bdf8', '#10b981', '#c084fc'],
+                stroke: { width: 2, colors: ['#0f172a'] },
+                dataLabels: { enabled: false },
+                legend: { show: false },
+                tooltip: {
+                    theme: 'dark',
+                    y: {
+                        formatter: function(val) {
+                            return val + " acessos";
+                        }
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '72%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Mobile',
+                                    color: '#94a3b8',
+                                    fontSize: '12px',
+                                    formatter: function() {
+                                        return deviceStats.mobile_pct + "%";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            chartDevices = new ApexCharts(document.querySelector("#chart-devices"), optionsDevices);
+            chartDevices.render();
+        } catch (e) {
+            console.error("Erro ao carregar ApexCharts Devices:", e);
+        }
+
+        // 4. Atualização em Tempo Real via API (/api/stats)
+        async function refreshDashboard() {
+            const btn = document.getElementById('btnRefresh');
+            const icon = document.getElementById('refreshIcon');
+            icon.style.display = 'inline-block';
+            icon.style.animation = 'spin 0.8s linear infinite';
+            
+            try {
+                const res = await fetch('/{{ current_slug }}/api/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Atualizar KPIs
+                    document.getElementById('kpi-today-visits').innerText = Number(data.today_visits).toLocaleString();
+                    document.getElementById('kpi-today-downloads').innerText = Number(data.today_downloads).toLocaleString();
+                    document.getElementById('kpi-conversion-today').innerText = data.conversion_rate_today + "%";
+                    document.getElementById('kpi-active-now').innerText = data.active_now;
+                    
+                    // Atualizar Gráfico de Séries Temporais
+                    if (chartTimeseries) {
+                        const is7d = document.getElementById('btnChart7d').classList.contains('active');
+                        const tsData = is7d ? data.chart_7d : data.chart_24h;
+                        chartTimeseries.updateOptions({
+                            xaxis: { categories: tsData.labels },
+                            series: [
+                                { name: 'Visitantes Únicos', data: tsData.visits },
+                                { name: 'Vídeos Baixados', data: tsData.downloads }
+                            ]
+                        });
+                    }
+
+                    // Notificação suave
+                    btn.style.borderColor = '#10b981';
+                    setTimeout(() => { btn.style.borderColor = 'var(--panel-border)'; }, 1000);
+                }
+            } catch (err) {
+                console.error("Erro ao atualizar métricas:", err);
+            } finally {
+                setTimeout(() => { icon.style.animation = ''; }, 600);
+            }
+        }
+
+        // Auto-refresh a cada 30 segundos
+        setInterval(refreshDashboard, 30000);
     </script>
+    <style>
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
 </body>
 </html>

@@ -7,7 +7,7 @@ import time
 import requests
 import urllib3
 import urllib3.util.connection as urllib3_cn
-from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats
+from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, parse_device_info, resolve_country
 from social_downloader import process_social_url
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -50,13 +50,13 @@ def reset_failed_attempts(ip):
 
 def get_client_country():
     cf_country = request.headers.get('CF-IPCountry')
-    if cf_country:
-        return cf_country
+    if cf_country and len(cf_country) == 2:
+        return cf_country.upper()
         
     ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
     if ip in ('127.0.0.1', '::1', 'localhost'):
-        return 'Brasil (Local)'
-    return 'Brasil'
+        return 'BR'
+    return 'BR'
 
 @app.before_request
 def track_visitor():
@@ -64,7 +64,10 @@ def track_visitor():
     if request.path in ('/', '/social') and request.method == 'GET':
         ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
         country = get_client_country()
-        log_visit(ip, country, request.path)
+        ua = request.headers.get('User-Agent', '')
+        device, os_name, browser = parse_device_info(ua)
+        city = request.headers.get('CF-IPCity', '')
+        log_visit(ip, country, request.path, device=device, os_name=os_name, browser=browser, city=city)
 
 @app.route('/')
 def index():
@@ -196,7 +199,9 @@ def proxy_download():
         if not skip_count:
             try:
                 country = get_client_country()
-                log_download(title, country, url=video_url)
+                ua = request.headers.get('User-Agent', '')
+                device, _, _ = parse_device_info(ua)
+                log_download(title, country, url=video_url, device=device)
             except Exception as le:
                 print("Erro log:", le)
 
@@ -430,6 +435,16 @@ def secret_admin_save(secret_slug):
         return redirect(f'/{current_slug}?msg=Credenciais de segurança e rota privada atualizadas com sucesso!')
         
     return redirect(f'/{current_slug}')
+
+@app.route('/<secret_slug>/api/stats', methods=['GET'])
+def secret_admin_api_stats(secret_slug):
+    if not ENABLE_ADMIN_PANEL:
+        abort(404)
+    settings = get_settings()
+    current_slug = settings.get('admin_slug', 'painel-gestao-9021')
+    if secret_slug != current_slug or not flask_session.get('admin_logged'):
+        abort(403)
+    return jsonify(get_stats())
 
 
 # ================= AGGRESSIVE SEO, PAGESPEED & CACHING ================= #
