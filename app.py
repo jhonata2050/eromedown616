@@ -82,6 +82,54 @@ def social_page():
 def get_social_video():
     return jsonify({'error': 'Downloader de redes sociais desativado. Use o EromeDown para baixar vídeos do Erome.'})
 
+@app.route('/favicon.ico')
+def favicon():
+    return ('', 204)
+
+@app.route('/manifest.json')
+def manifest():
+    return jsonify({
+        "name": "EromeDown",
+        "short_name": "EromeDown",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0a0a0c",
+        "theme_color": "#0a0a0c"
+    })
+
+@app.route('/ad_slot/<slot>')
+def ad_slot(slot):
+    settings = get_settings()
+    if settings.get('ads_enabled', '1') != '1':
+        return ('', 204)
+        
+    ad_content = ''
+    if slot == 'bottom':
+        ad_content = settings.get('ad_bottom', '')
+    elif slot == 'left':
+        ad_content = settings.get('ad_left', '')
+    elif slot == 'right':
+        ad_content = settings.get('ad_right', '')
+    elif slot == 'top':
+        ad_content = settings.get('ad_top', '')
+        
+    if not ad_content or not ad_content.strip():
+        return ('', 204)
+        
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+body, html {{ margin:0; padding:0; overflow:hidden; background:transparent; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }}
+</style>
+</head>
+<body>
+{ad_content}
+</body>
+</html>"""
+    return Response(html, mimetype='text/html')
+
 @app.after_request
 def add_no_cache_headers(response):
     # Força os navegadores móveis e Cloudflare a não manterem cache de páginas HTML

@@ -265,7 +265,7 @@
                 <span class="sponsor-tag">Patrocinado</span>
                 <div class="ad-slot-728x90">
                     {% if settings.ad_bottom %}
-                        {{ settings.ad_bottom | safe }}
+                        <iframe src="/ad_slot/bottom" width="728" height="90" frameborder="0" scrolling="no" loading="lazy" style="border:none; overflow:hidden; max-width:100%; display:block; margin:0 auto;" title="Anúncio"></iframe>
                     {% else %}
                         <div class="sim-ad-mini" onclick="triggerSimulatedAd(event, 'Jogo Adulto 3D Sem Instalação')">
                             <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
@@ -399,7 +399,7 @@
         <span class="sponsor-tag">Patrocinado</span>
         <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
             {% if settings.ad_left %}
-                {{ settings.ad_left | safe }}
+                <iframe src="/ad_slot/left" width="160" height="600" frameborder="0" scrolling="no" loading="lazy" style="border:none; overflow:hidden;" title="Anúncio Lateral"></iframe>
             {% else %}
                 <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
                     <div>
@@ -418,7 +418,7 @@
         <span class="sponsor-tag">Patrocinado</span>
         <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
             {% if settings.ad_right %}
-                {{ settings.ad_right | safe }}
+                <iframe src="/ad_slot/right" width="160" height="600" frameborder="0" scrolling="no" loading="lazy" style="border:none; overflow:hidden;" title="Anúncio Lateral"></iframe>
             {% else %}
                 <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Encontros Locais Discretos')">
                     <div>
@@ -740,7 +740,32 @@
         }
     </style>
     {% if settings and settings.ads_enabled == '1' and settings.ad_popunder %}
-        {{ settings.ad_popunder | safe }}
+    <script>
+        // Carregamento de Popunders 100% Assíncrono (Zero bloqueio de renderização do site)
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                try {
+                    const rawPop = {{ settings.ad_popunder | tojson }};
+                    if (!rawPop) return;
+                    const temp = document.createElement('div');
+                    temp.innerHTML = rawPop;
+                    const scripts = temp.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        const newScript = document.createElement('script');
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                            newScript.async = true;
+                        } else {
+                            newScript.textContent = oldScript.textContent;
+                        }
+                        document.body.appendChild(newScript);
+                    });
+                } catch(e) {
+                    console.log('Popunder init err:', e);
+                }
+            }, 1200);
+        });
+    </script>
     {% endif %}
 </body>
 </html>

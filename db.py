@@ -7,13 +7,19 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DB_PATH = os.path.join(os.path.dirname(__file__), 'analytics.db')
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20.0)
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
     with get_db() as conn:
         cursor = conn.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.execute("PRAGMA synchronous=NORMAL;")
+            cursor.execute("PRAGMA busy_timeout=20000;")
+        except Exception:
+            pass
         
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS settings (
