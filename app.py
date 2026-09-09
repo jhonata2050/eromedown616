@@ -410,22 +410,21 @@ def robots_txt():
     content = """# https://eromedown.org robots.txt
 User-agent: *
 Allow: /
-Allow: /social
 Allow: /static/
 Disallow: /admin
 Disallow: /sys-*
+Disallow: /painel-*
 Disallow: /proxy_download
 Disallow: /get_video
-Disallow: /get_social_video
 
 # Crawlers específicos
 User-agent: Googlebot
 Allow: /
-Allow: /social
+Allow: /static/
 
 User-agent: Bingbot
 Allow: /
-Allow: /social
+Allow: /static/
 
 Sitemap: https://eromedown.org/sitemap.xml
 """
@@ -448,18 +447,6 @@ def sitemap_xml():
         <xhtml:link rel="alternate" hreflang="es" href="https://eromedown.org/?lang=es" />
         <xhtml:link rel="alternate" hreflang="fr" href="https://eromedown.org/?lang=fr" />
         <xhtml:link rel="alternate" hreflang="ru" href="https://eromedown.org/?lang=ru" />
-    </url>
-    <url>
-        <loc>https://eromedown.org/social</loc>
-        <lastmod>{today}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-        <xhtml:link rel="alternate" hreflang="x-default" href="https://eromedown.org/social" />
-        <xhtml:link rel="alternate" hreflang="pt" href="https://eromedown.org/social?lang=pt" />
-        <xhtml:link rel="alternate" hreflang="en" href="https://eromedown.org/social?lang=en" />
-        <xhtml:link rel="alternate" hreflang="es" href="https://eromedown.org/social?lang=es" />
-        <xhtml:link rel="alternate" hreflang="fr" href="https://eromedown.org/social?lang=fr" />
-        <xhtml:link rel="alternate" hreflang="ru" href="https://eromedown.org/social?lang=ru" />
     </url>
 </urlset>"""
     return Response(content, mimetype='application/xml')
