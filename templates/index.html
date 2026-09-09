@@ -211,46 +211,7 @@
         </div>
     </header>
 
-    <!-- Banners Laterais Skyscraper (160x600 Desktop Fixo) -->
-    {% if settings and settings.ads_enabled == '1' %}
-    <aside class="side-ad-left">
-        <span class="sponsor-tag">Patrocinado</span>
-        <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
-            {% if settings.ad_left %}
-                {{ settings.ad_left | safe }}
-            {% else %}
-                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
-                    <div>
-                        <span style="font-size: 8.5px; font-weight: 700; color: #f87171; background: rgba(239,68,68,0.15); padding: 2px 6px; border-radius: 4px;">● AO VIVO</span>
-                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Câmeras Privadas</h4>
-                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">3.840 modelos online transmitindo agora.</p>
-                    </div>
-                    <img src="/static/ads/cam_model.jpg" alt="Model" width="144" height="260" loading="lazy" decoding="async" style="width: 100%; height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
-                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Entrar na Cam 💋</button>
-                </div>
-            {% endif %}
-        </div>
-    </aside>
 
-    <aside class="side-ad-right">
-        <span class="sponsor-tag">Patrocinado</span>
-        <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
-            {% if settings.ad_right %}
-                {{ settings.ad_right | safe }}
-            {% else %}
-                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Encontros Locais Discretos')">
-                    <div>
-                        <span style="font-size: 8.5px; font-weight: 700; color: #4ade80; background: rgba(74,222,128,0.15); padding: 2px 6px; border-radius: 4px;">📍 1.2 km de você</span>
-                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Solteiras Online</h4>
-                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">A fim de sair e conversar agora.</p>
-                    </div>
-                    <img src="/static/ads/dating_model.jpg" alt="Dating" width="144" height="260" loading="lazy" decoding="async" style="width: 100%; height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
-                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Ver Perfil 💬</button>
-                </div>
-            {% endif %}
-        </div>
-    </aside>
-    {% endif %}
 
     <main>
         <!-- HERO SECTION (ESTILO EROMEDOWN.ORG COM FOCO EM CONVERSÃO E SEO) -->
@@ -304,7 +265,7 @@
                 <span class="sponsor-tag">Patrocinado</span>
                 <div class="ad-slot-728x90">
                     {% if settings.ad_bottom %}
-                        {{ settings.ad_bottom | safe }}
+                        <iframe srcdoc="<!DOCTYPE html><html><head><base target='_blank'><style>body{margin:0;padding:0;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;}</style></head><body>{{ settings.ad_bottom | e }}</body></html>" width="728" height="90" style="border:none;overflow:hidden;max-width:100%;height:90px;" loading="lazy"></iframe>
                     {% else %}
                         <div class="sim-ad-mini" onclick="triggerSimulatedAd(event, 'Jogo Adulto 3D Sem Instalação')">
                             <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
@@ -431,6 +392,47 @@
             </div>
         </section>
     </main>
+
+    <!-- Banners Laterais Skyscraper (160x600 Desktop Fixo - Carregamento Não-Bloqueante) -->
+    {% if settings and settings.ads_enabled == '1' %}
+    <aside class="side-ad-left">
+        <span class="sponsor-tag">Patrocinado</span>
+        <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
+            {% if settings.ad_left %}
+                <iframe srcdoc="<!DOCTYPE html><html><head><base target='_blank'><style>body{margin:0;padding:0;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;}</style></head><body>{{ settings.ad_left | e }}</body></html>" width="160" height="600" style="border:none;overflow:hidden;width:160px;height:600px;" loading="lazy"></iframe>
+            {% else %}
+                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
+                    <div>
+                        <span style="font-size: 8.5px; font-weight: 700; color: #f87171; background: rgba(239,68,68,0.15); padding: 2px 6px; border-radius: 4px;">● AO VIVO</span>
+                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Câmeras Privadas</h4>
+                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">3.840 modelos online transmitindo agora.</p>
+                    </div>
+                    <img src="/static/ads/cam_model.jpg" alt="Model" width="144" height="260" loading="lazy" decoding="async" style="width: 100%; height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
+                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Entrar na Cam 💋</button>
+                </div>
+            {% endif %}
+        </div>
+    </aside>
+
+    <aside class="side-ad-right">
+        <span class="sponsor-tag">Patrocinado</span>
+        <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
+            {% if settings.ad_right %}
+                <iframe srcdoc="<!DOCTYPE html><html><head><base target='_blank'><style>body{margin:0;padding:0;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;}</style></head><body>{{ settings.ad_right | e }}</body></html>" width="160" height="600" style="border:none;overflow:hidden;width:160px;height:600px;" loading="lazy"></iframe>
+            {% else %}
+                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Encontros Locais Discretos')">
+                    <div>
+                        <span style="font-size: 8.5px; font-weight: 700; color: #4ade80; background: rgba(74,222,128,0.15); padding: 2px 6px; border-radius: 4px;">📍 1.2 km de você</span>
+                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Solteiras Online</h4>
+                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">A fim de sair e conversar agora.</p>
+                    </div>
+                    <img src="/static/ads/dating_model.jpg" alt="Dating" width="144" height="260" loading="lazy" decoding="async" style="width: 100%; height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
+                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Ver Perfil 💬</button>
+                </div>
+            {% endif %}
+        </div>
+    </aside>
+    {% endif %}
 
     <!-- NUVEM SEMÂNTICA MULTILÍNGUE PARA SEO DO GOOGLE (ESTILO EROMEDIA.APP) -->
     <aside style="font-size: 0.65rem; color: #555566; opacity: 0.55; text-align: center; padding: 2rem 1.5rem; max-width: 960px; margin: 0 auto; line-height: 1.7;">
