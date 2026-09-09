@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Painel Executivo | Gestão & Analytics</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        :root {
+            --panel-bg: #0d1117;
+            --panel-card: rgba(22, 27, 34, 0.9);
+            --panel-border: rgba(48, 54, 61, 0.8);
+            --accent-cyan: #38bdf8;
+            --accent-green: #34d399;
+            --accent-purple: #c084fc;
+        }
+
+        body {
+            background: #090d13;
+            color: #e6edf3;
+            padding: 20px 15px;
+        }
+
+        .admin-wrapper {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 0 auto;
+        }
+
+        /* Top Header */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-card);
+            border: 1px solid var(--panel-border);
+            padding: 18px 24px;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(52, 211, 153, 0.12);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .status-pill::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #34d399;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #34d399;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-nav {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            border: 1px solid var(--panel-border);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-nav:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-logout {
+            color: #f87171 !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+            border-color: rgba(239, 68, 68, 0.3) !important;
+        }
+
+        /* Sistema de Abas */
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 8px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #94a3b8;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.35);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Conteúdo das Abas */
+        .tab-pane {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tab-pane.active {
+            display: flex;
+        }
+
+        /* Grid de KPIs */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: var(--panel-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+        }
+
+        .kpi-card.cyan::after { background: var(--accent-cyan); }
+        .kpi-card.green::after { background: var(--accent-green); }
+        .kpi-card.purple::after { background: var(--accent-purple); }
+        .kpi-card.rose::after { background: #fb7185; }
+
+        .kpi-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #64748b;
+        }
+
+        .kpi-number {
+            font-size: 34px;
+            font-weight: 800;
+            color: white;
+            line-height: 1;
+        }
+
+        .kpi-footer {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* Cartões de Conteúdo */
+        .data-card {
+            background: var(--panel-card);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .data-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--panel-border);
+            padding-bottom: 12px;
+        }
+
+        .data-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Listas e Tabelas */
+        .country-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            font-size: 14px;
+        }
+
+        .country-row:last-child { border-bottom: none; }
+
+        .badge-country {
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .download-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .btn-open-video {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-open-video:hover {
+            background: #0284c7;
+            color: white;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-copy-link {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: #94a3b8;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn-copy-link:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Formulários */
+        .config-box {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .input-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .input-label small {
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .code-textarea {
+            width: 100%;
+            height: 85px;
+            background: #090d13;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 12px;
+            color: #38bdf8;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .code-textarea:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: #090d13;
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6ee7b7;
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .url-box {
+            background: #090d13;
+            border: 1px dashed rgba(56, 189, 248, 0.4);
+            padding: 14px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #38bdf8;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-wrapper">
+        <!-- Topo Executivo -->
+        <header class="admin-header">
+            <div class="header-brand">
+                <h2 style="font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">
+                    🛡️ Core <span style="color: #38bdf8;">Shield</span> Management
+                </h2>
+                <span class="status-pill">Online & Protegido</span>
+            </div>
+
+            <div class="header-actions">
+                <a href="/" target="_blank" class="btn-nav">
+                    <span>🌐</span> Ver Site
+                </a>
+                <a href="/{{ current_slug }}?logout=1" class="btn-nav btn-logout">
+                    <span>🚪</span> Sair
+                </a>
+            </div>
+        </header>
+
+        {% if message %}
+            <div class="alert-success">
+                <span>✅</span> {{ message }}
+            </div>
+        {% endif %}
+
+        <!-- Navegação por Abas -->
+        <nav class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('analytics')">📊 Visão Geral & Métricas</button>
+            <button class="tab-btn" onclick="switchTab('ads')">📢 Anúncios & Monetização</button>
+            <button class="tab-btn" onclick="switchTab('security')">🔒 Segurança & Rota Oculta</button>
+        </nav>
+
+        <!-- ABA 1: ANALYTICS & MÉTRICAS -->
+        <div id="tab-analytics" class="tab-pane active">
+            <!-- KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card cyan">
+                    <span class="kpi-title">Visitas Hoje</span>
+                    <span class="kpi-number">{{ stats.today_visits }}</span>
+                    <span class="kpi-footer">Total acumulado: <strong>{{ stats.total_visits }}</strong></span>
+                </div>
+
+                <div class="kpi-card green">
+                    <span class="kpi-title">Downloads Hoje</span>
+                    <span class="kpi-number">{{ stats.today_downloads }}</span>
+                    <span class="kpi-footer">Total acumulado: <strong>{{ stats.total_downloads }}</strong></span>
+                </div>
+
+                <div class="kpi-card purple">
+                    <span class="kpi-title">Taxa de Conversão</span>
+                    <span class="kpi-number">
+                        {% if stats.total_visits > 0 %}
+                            {{ "%.1f"|format((stats.total_downloads / stats.total_visits) * 100) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </span>
+                    <span class="kpi-footer">Média de downloads por visitante</span>
+                </div>
+
+                <div class="kpi-card rose">
+                    <span class="kpi-title">Monetização Ativa</span>
+                    <span class="kpi-number">
+                        {% if settings.ads_enabled == '1' %}
+                            Ativo
+                        {% else %}
+                            Pausado
+                        {% endif %}
+                    </span>
+                    <span class="kpi-footer">Espaços de anúncios preenchidos</span>
+                </div>
+            </div>
+
+            <!-- Duas Colunas: Geografia + Atividade Recente -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px;">
+                <!-- Países / Regiões -->
+                <div class="data-card">
+                    <div class="data-card-header">
+                        <span class="data-card-title">🌍 Tráfego por Região / País</span>
+                        <small style="color: #64748b;">Cloudflare CF-IPCountry</small>
+                    </div>
+
+                    {% if stats.top_countries %}
+                        <div>
+                            {% for c in stats.top_countries %}
+                                <div class="country-row">
+                                    <span>📍 <strong>{{ c.country }}</strong></span>
+                                    <span class="badge-country">{{ c.count }} acessos</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="color: #64748b; font-size: 13px;">Ainda não há dados geográficos suficientes registrados.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Últimos Downloads -->
+                <div class="data-card">
+                    <div class="data-card-header">
+                        <span class="data-card-title">📥 Últimos Downloads Concluídos</span>
+                        <small style="color: #64748b;">Tempo Real</small>
+                    </div>
+
+                    {% if stats.recent_downloads %}
+                        <div style="max-height: 280px; overflow-y: auto;">
+                            {% for d in stats.recent_downloads %}
+                                <div class="download-row">
+                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 60%;">
+                                        <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            🎬 {{ d.title }}
+                                        </span>
+                                        <span style="color: #64748b; font-size: 11px;">
+                                            📍 {{ d.country }} • 🕒 {{ d.timestamp }}
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        {% if d.url %}
+                                            <a href="/proxy_download?url={{ d.url }}&title={{ d.title }}" target="_blank" class="btn-open-video" title="Assistir ou Baixar o Vídeo">
+                                                ▶️ Abrir Vídeo
+                                            </a>
+                                            <button type="button" onclick="navigator.clipboard.writeText('{{ d.url }}'); alert('Link direto do vídeo copiado para a área de transferência!');" class="btn-copy-link" title="Copiar URL original">
+                                                📋
+                                            </button>
+                                        {% else %}
+                                            <span style="color: #475569; font-size: 11px;">(Sem link)</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="color: #64748b; font-size: 13px;">Nenhum download registrado nas últimas horas.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 2: ANÚNCIOS & MONETIZAÇÃO -->
+        <div id="tab-ads" class="tab-pane">
+            <div class="data-card">
+                <div class="data-card-header">
+                    <span class="data-card-title">📢 Editor Central de Anúncios</span>
+                    <small style="color: #64748b;">Cole os scripts da ExoClick, Adsterra ou outras redes</small>
+                </div>
+
+                <form method="POST" action="/sys-action-save/{{ current_slug }}" class="config-box">
+                    <input type="hidden" name="section" value="ads">
+
+                    <div style="background: rgba(255,255,255,0.03); padding: 14px; border-radius: 8px; border: 1px solid var(--panel-border);">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600;">
+                            <input type="checkbox" name="ads_enabled" value="1" {% if settings.ads_enabled == '1' %}checked{% endif %} style="transform: scale(1.3);">
+                            <span>Exibir Publicidades no Site (Ativado)</span>
+                        </label>
+                        <p style="margin-top: 8px; font-size: 12px; color: #94a3b8; line-height: 1.4;">
+                            💡 <strong>Banners Simulados Ativos:</strong> Enquanto os campos abaixo ficarem em branco, o site exibirá automaticamente os banners simulados profissionais (VPN, Câmeras Privadas, Solteiras e Jogos 18+). Quando quiser ativar seus próprios anúncios reais, basta colar os scripts das redes abaixo.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="input-label">
+                            <span>Banner Topo (728x90 Leaderboard)</span>
+                            <small>Aparece no topo de todas as páginas</small>
+                        </label>
+                        <textarea class="code-textarea" name="ad_top" placeholder="Cole o código HTML/JS aqui...">{{ settings.ad_top }}</textarea>
+                    </div>
+
+                    <div>
+                        <label class="input-label">
+                            <span>Banner Abaixo da Busca (728x90)</span>
+                            <small>Fica logo abaixo da caixa de download (alta conversão)</small>
+                        </label>
+                        <textarea class="code-textarea" name="ad_bottom" placeholder="Cole o código HTML/JS aqui...">{{ settings.ad_bottom }}</textarea>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div>
+                            <label class="input-label">
+                                <span>Lateral Esquerda (160x600)</span>
+                                <small>Skyscraper Desktop</small>
+                            </label>
+                            <textarea class="code-textarea" name="ad_left" placeholder="Cole o código aqui...">{{ settings.ad_left }}</textarea>
+                        </div>
+                        <div>
+                            <label class="input-label">
+                                <span>Lateral Direita (160x600)</span>
+                                <small>Skyscraper Desktop</small>
+                            </label>
+                            <textarea class="code-textarea" name="ad_right" placeholder="Cole o código aqui...">{{ settings.ad_right }}</textarea>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="input-label">
+                            <span>Popunder / Script OnClick</span>
+                            <small>Abre janela de anúncio ao clicar na tela (maior faturamento)</small>
+                        </label>
+                        <textarea class="code-textarea" name="ad_popunder" placeholder="Cole o código do Popunder/OnClick aqui...">{{ settings.ad_popunder }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        💾 Salvar Anúncios
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ABA 3: SEGURANÇA & ROTA OCULTA -->
+        <div id="tab-security" class="tab-pane">
+            <div class="data-card">
+                <div class="data-card-header">
+                    <span class="data-card-title">🛡️ Configurações de Blindagem & Rota Privada</span>
+                    <small style="color: #34d399;">Proteção contra Robôs & Scanners</small>
+                </div>
+
+                <div class="config-box">
+                    <p style="color: #94a3b8; font-size: 14px; line-height: 1.5;">
+                        Para proteger o seu site contra scanners automatizados e invasores, o endereço <code>/admin</code> está <strong>desativado e retorna Erro 404 (Não Encontrado)</strong>. O acesso é exclusivo através do seu link secreto abaixo.
+                    </p>
+
+                    <div>
+                        <label class="input-label">
+                            <span>Seu Endereço Privado Atual</span>
+                            <small>Guarde nos seus favoritos do navegador</small>
+                        </label>
+                        <div class="url-box">
+                            <span id="secretUrlText">http://127.0.0.1:5000/{{ current_slug }}</span>
+                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('secretUrlText').innerText); alert('Link copiado para a área de transferência!');" style="padding: 6px 12px; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; border-radius: 6px; cursor: pointer;">
+                                Copiar Link
+                            </button>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="/sys-action-save/{{ current_slug }}" style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
+                        <input type="hidden" name="section" value="security">
+
+                        <div>
+                            <label class="input-label">
+                                <span>Usuário Administrador</span>
+                                <small>Identificador de login mestre</small>
+                            </label>
+                            <input type="text" name="admin_username" value="{{ settings.admin_username if settings and settings.admin_username else 'SystemAdmin' }}" class="text-input" required>
+                        </div>
+
+                        <div>
+                            <label class="input-label">
+                                <span>Alterar Slug da Rota Secreta</span>
+                                <small>Apenas letras, números e traços</small>
+                            </label>
+                            <input type="text" name="admin_slug" value="{{ current_slug }}" class="text-input" pattern="[a-zA-Z0-9\-_]+" required>
+                        </div>
+
+                        <div>
+                            <label class="input-label">
+                                <span>Nova Senha de Acesso</span>
+                                <small>Deixe em branco se não quiser alterar</small>
+                            </label>
+                            <input type="password" name="new_password" placeholder="Digite uma nova senha forte..." class="text-input">
+                        </div>
+
+                        <button type="submit" class="btn-primary">
+                            🔒 Atualizar Credenciais de Segurança
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
