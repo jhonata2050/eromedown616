@@ -6,36 +6,59 @@
     <meta name="referrer" content="no-referrer">
     <title>Painel Executivo | Gestão, Analytics & Geo-Inteligência</title>
     <link rel="stylesheet" href="/static/style.css">
+    
     <!-- jsVectorMap & ApexCharts CDN for Enterprise Analytics -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world-merc.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <style>
         :root {
             --panel-bg: #070a0f;
-            --panel-card: rgba(15, 23, 42, 0.75);
-            --panel-card-hover: rgba(30, 41, 59, 0.85);
-            --panel-border: rgba(56, 189, 248, 0.15);
-            --panel-border-bright: rgba(56, 189, 248, 0.35);
+            --panel-card: rgba(15, 23, 42, 0.85);
+            --panel-card-hover: rgba(30, 41, 59, 0.95);
+            --panel-border: rgba(56, 189, 248, 0.18);
+            --panel-border-bright: rgba(56, 189, 248, 0.4);
             --accent-cyan: #38bdf8;
             --accent-emerald: #10b981;
-            --accent-indigo: #6366f1;
-            --accent-purple: #c084fc;
             --accent-rose: #f43f5e;
+            --accent-erome: #e11d48;
             --accent-amber: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Barra de rolagem escura e moderna */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
         }
 
         body {
             background: 
-                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.06) 0%, transparent 40%),
-                radial-gradient(circle at 90% 90%, rgba(99, 102, 241, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 45%),
+                radial-gradient(circle at 90% 90%, rgba(225, 29, 72, 0.05) 0%, transparent 45%),
                 #070a0f !important;
             color: #e2e8f0;
-            padding: 24px 16px;
+            padding: 20px 16px;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .admin-wrapper {
@@ -43,7 +66,7 @@
             max-width: 1360px;
             display: flex;
             flex-direction: column;
-            gap: 22px;
+            gap: 20px;
             margin: 0 auto;
         }
 
@@ -56,15 +79,17 @@
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            padding: 16px 26px;
+            padding: 16px 24px;
             border-radius: 16px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 30px rgba(56, 189, 248, 0.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         .header-brand {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
         }
 
         .pulse-box {
@@ -100,11 +125,11 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
         }
 
         .btn-action-top {
-            padding: 9px 16px;
+            padding: 8px 14px;
             border-radius: 10px;
             font-size: 13px;
             font-weight: 600;
@@ -112,10 +137,10 @@
             background: rgba(255, 255, 255, 0.04);
             color: #cbd5e1;
             border: 1px solid var(--panel-border);
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             display: inline-flex;
             align-items: center;
-            gap: 7px;
+            gap: 6px;
             cursor: pointer;
         }
 
@@ -137,28 +162,30 @@
             border-color: #ef4444 !important;
         }
 
-        /* Tab Navigation */
+        /* Sistema de Abas */
         .tab-bar {
             display: flex;
             gap: 8px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             padding-bottom: 8px;
+            overflow-x: auto;
         }
 
         .tab-btn {
             background: transparent;
             border: 1px solid transparent;
             color: #94a3b8;
-            padding: 12px 22px;
+            padding: 11px 20px;
             border-radius: 10px;
             font-size: 14px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
             font-family: inherit;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            white-space: nowrap;
         }
 
         .tab-btn.active {
@@ -176,18 +203,20 @@
         .tab-pane {
             display: none;
             flex-direction: column;
-            gap: 22px;
+            gap: 20px;
+            width: 100%;
         }
 
         .tab-pane.active {
             display: flex;
         }
 
-        /* KPI Cards Grid */
+        /* KPI Deck */
         .kpi-deck {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 16px;
+            width: 100%;
         }
 
         .kpi-card-pro {
@@ -195,19 +224,19 @@
             backdrop-filter: blur(16px);
             border: 1px solid var(--panel-border);
             border-radius: 16px;
-            padding: 22px 20px;
+            padding: 20px 18px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             position: relative;
             overflow: hidden;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
         }
 
         .kpi-card-pro:hover {
             transform: translateY(-2px);
             border-color: var(--panel-border-bright);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
         .kpi-card-pro::before {
@@ -275,20 +304,24 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            flex-wrap: wrap;
         }
 
-        /* Glassmorphism Containers */
+        /* Glass Containers */
         .glass-box {
             background: var(--panel-card);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--panel-border);
-            border-radius: 18px;
-            padding: 24px;
+            border-radius: 16px;
+            padding: 22px;
             display: flex;
             flex-direction: column;
-            gap: 18px;
+            gap: 16px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
         }
 
         .glass-box-header {
@@ -296,7 +329,9 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-            padding-bottom: 14px;
+            padding-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .glass-title {
@@ -325,6 +360,7 @@
             padding: 10px 14px !important;
             color: #fff !important;
             font-family: inherit !important;
+            z-index: 1000 !important;
         }
 
         .map-legend {
@@ -353,7 +389,7 @@
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            padding: 14px 16px;
+            padding: 12px 14px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -375,7 +411,7 @@
 
         .progress-track {
             width: 100%;
-            height: 7px;
+            height: 6px;
             background: rgba(255, 255, 255, 0.06);
             border-radius: 10px;
             overflow: hidden;
@@ -404,12 +440,14 @@
             font-size: 11px;
             letter-spacing: 0.6px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
         }
 
         .elite-table td {
             padding: 12px 14px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             color: #e2e8f0;
+            white-space: nowrap;
         }
 
         .elite-table tr:hover td {
@@ -463,16 +501,19 @@
             box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
         }
 
+        /* Download Item Stream (Sleek & Robust) */
         .download-item-stream {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 14px;
+            gap: 12px;
+            padding: 11px 14px;
             background: rgba(255, 255, 255, 0.02);
             border-radius: 10px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             border: 1px solid rgba(255, 255, 255, 0.04);
             transition: all 0.2s;
+            width: 100%;
         }
 
         .download-item-stream:hover {
@@ -480,14 +521,104 @@
             background: rgba(255, 255, 255, 0.04);
         }
 
+        .download-info-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .download-title-text {
+            font-weight: 600;
+            color: #f8fafc;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+
+        .download-actions-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        /* Botão Oficial Erome (Destaque Rosa / Vermelho) */
+        .btn-erome {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+            color: #ffffff !important;
+            border: 1px solid rgba(244, 63, 94, 0.5);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
+        }
+
+        .btn-erome:hover {
+            background: #f43f5e;
+            box-shadow: 0 0 14px rgba(244, 63, 94, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .btn-open-video {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-open-video:hover {
+            background: #0284c7;
+            color: white;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-copy-link {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--panel-border);
+            color: #94a3b8;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .btn-copy-link:hover { color: white; background: rgba(255, 255, 255, 0.1); }
+
         /* Responsive Layout Grid */
         .grid-2 {
             display: grid;
-            grid-template-columns: 1.5fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
+            width: 100%;
         }
 
-        @media (max-width: 1024px) {
+        .grid-2 > * {
+            min-width: 0;
+            width: 100%;
+        }
+
+        @media (max-width: 1100px) {
             .grid-2 {
                 grid-template-columns: 1fr;
             }
@@ -585,38 +716,6 @@
             font-size: 14px;
             color: #38bdf8;
         }
-        .btn-open-video {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
-            background: rgba(56, 189, 248, 0.12);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 700;
-            text-decoration: none;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-        .btn-open-video:hover {
-            background: #0284c7;
-            color: white;
-            box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-            transform: translateY(-1px);
-        }
-        .btn-copy-link {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--panel-border);
-            color: #94a3b8;
-            padding: 6px 8px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-        .btn-copy-link:hover { color: white; background: rgba(255, 255, 255, 0.1); }
         .alert-success {
             background: rgba(16, 185, 129, 0.15);
             border: 1px solid rgba(16, 185, 129, 0.3);
@@ -722,7 +821,7 @@
                     </div>
                     <div class="kpi-value" id="kpi-conversion-today">{{ stats.conversion_rate_today }}%</div>
                     <div class="kpi-sub">
-                        <span>Taxa Histórica Global: <strong>{{ stats.conversion_rate_global }}%</strong></span>
+                        <span>Taxa Global: <strong>{{ stats.conversion_rate_global }}%</strong></span>
                     </div>
                 </div>
 
@@ -734,7 +833,7 @@
                     </div>
                     <div class="kpi-value">{{ "{:,}".format(stats.weekly_visits) }}</div>
                     <div class="kpi-sub">
-                        <span>Últimos 30 Dias: <strong>{{ "{:,}".format(stats.monthly_visits) }}</strong> acessos</span>
+                        <span>30 Dias: <strong>{{ "{:,}".format(stats.monthly_visits) }}</strong> acessos</span>
                     </div>
                 </div>
 
@@ -746,7 +845,7 @@
                     </div>
                     <div class="kpi-value" id="kpi-active-now">{{ stats.active_now }}</div>
                     <div class="kpi-sub">
-                        <span>Usuários navegando nos últimos 5 min</span>
+                        <span>Usuários navegando agora (5 min)</span>
                     </div>
                 </div>
             </div>
@@ -761,7 +860,7 @@
                             <span>Densidade Geográfica & Tráfego Mundial</span>
                         </div>
                         <div style="font-size: 12px; color: #38bdf8; font-weight: 600;">
-                            <span>Origem por IP Cloudflare</span>
+                            <span>Origem Cloudflare Geo-IP</span>
                         </div>
                     </div>
 
@@ -770,9 +869,9 @@
 
                     <!-- Legenda de Calor -->
                     <div class="map-legend">
-                        <span>Densidade Baixa</span>
+                        <span>Baixo Tráfego</span>
                         <div class="legend-bar"></div>
-                        <span style="color: #38bdf8; font-weight: 700;">Alta Densidade de Visitantes</span>
+                        <span style="color: #38bdf8; font-weight: 700;">Alta Concentração</span>
                     </div>
                 </div>
 
@@ -871,7 +970,7 @@
                 </div>
             </div>
 
-            <!-- SEÇÃO 3: RANKING DETALHADO DE PAÍSES (TABELA EXECUTIVA) -->
+            <!-- SEÇÃO 3: RANKING DETALHADO DE PAÍSES (TABELA EXECUTIVA COM BANDEIRAS REAIS) -->
             <div class="glass-box">
                 <div class="glass-box-header">
                     <div class="glass-title">
@@ -885,12 +984,12 @@
                     <table class="elite-table">
                         <thead>
                             <tr>
-                                <th style="width: 60px;">Pos</th>
+                                <th style="width: 50px;">Pos</th>
                                 <th>País & Bandeira</th>
                                 <th>ISO</th>
                                 <th>Região</th>
                                 <th>Visitantes</th>
-                                <th style="width: 220px;">Participação no Tráfego</th>
+                                <th style="width: 200px;">Participação no Tráfego</th>
                                 <th>Downloads</th>
                                 <th>Taxa de Conversão</th>
                             </tr>
@@ -904,8 +1003,14 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <div style="display: flex; align-items: center; gap: 8px; font-weight: 700;">
-                                            <span style="font-size: 18px;">{{ c.flag }}</span>
+                                        <div style="display: flex; align-items: center; gap: 9px; font-weight: 700;">
+                                            <img src="https://flagcdn.com/28x21/{{ c.code_lower }}.png" 
+                                                 srcset="https://flagcdn.com/56x42/{{ c.code_lower }}.png 2x" 
+                                                 width="24" height="18" 
+                                                 alt="{{ c.name }}" 
+                                                 style="border-radius: 3px; vertical-align: middle; box-shadow: 0 2px 5px rgba(0,0,0,0.5); object-fit: cover;"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                            <span style="display: none; font-size: 16px;">{{ c.flag }}</span>
                                             <span>{{ c.name }}</span>
                                         </div>
                                     </td>
@@ -943,7 +1048,7 @@
 
             <!-- SEÇÃO 4: TOP VÍDEOS MAIS BAIXADOS & FEED EM TEMPO REAL -->
             <div class="grid-2">
-                <!-- Top Vídeos -->
+                <!-- Top Vídeos Mais Baixados -->
                 <div class="glass-box">
                     <div class="glass-box-header">
                         <div class="glass-title">
@@ -954,23 +1059,28 @@
                     </div>
 
                     {% if stats.top_videos %}
-                        <div style="max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
                             {% for v in stats.top_videos %}
                                 <div class="download-item-stream">
-                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 70%;">
-                                        <span style="font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ v.title }}">
+                                    <div class="download-info-wrap">
+                                        <span class="download-title-text" title="{{ v.title }}">
                                             🎬 {{ v.title }}
                                         </span>
                                         <span style="color: #64748b; font-size: 11px;">
                                             🔥 Baixado <strong style="color: #38bdf8;">{{ v.count }}x</strong> • Último em {{ v.last_download }}
                                         </span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div class="download-actions-wrap">
+                                        <!-- BOTÃO DIRETO PARA O VÍDEO / ÁLBUM NO EROME -->
+                                        <a href="{{ v.erome_url }}" target="_blank" rel="noopener noreferrer" class="btn-erome" title="Abrir vídeo original no Erome.com">
+                                            <span>🔗</span> <span>Ver no Erome</span>
+                                        </a>
+
                                         {% if v.url %}
-                                            <a href="/proxy_download?url={{ v.url }}&title={{ v.title }}" target="_blank" class="btn-open-video">
-                                                ▶️ Abrir
+                                            <a href="/proxy_download?url={{ v.url }}&title={{ v.title }}" target="_blank" class="btn-open-video" title="Baixar MP4 Direto">
+                                                <span>▶️</span> <span>Baixar</span>
                                             </a>
-                                            <button type="button" onclick="navigator.clipboard.writeText('{{ v.url }}'); alert('Link do vídeo copiado!');" class="btn-copy-link" title="Copiar URL">
+                                            <button type="button" onclick="navigator.clipboard.writeText('{{ v.erome_url or v.url }}'); alert('Link copiado!');" class="btn-copy-link" title="Copiar Link">
                                                 📋
                                             </button>
                                         {% endif %}
@@ -994,26 +1104,31 @@
                     </div>
 
                     {% if stats.recent_downloads %}
-                        <div style="max-height: 420px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;" id="recent-downloads-feed">
+                        <div style="max-height: 440px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;" id="recent-downloads-feed">
                             {% for d in stats.recent_downloads %}
                                 <div class="download-item-stream">
-                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 70%;">
-                                        <span style="font-weight: 600; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ d.title }}">
+                                    <div class="download-info-wrap">
+                                        <span class="download-title-text" title="{{ d.title }}">
                                             🎬 {{ d.title }}
                                         </span>
-                                        <span style="color: #64748b; font-size: 11px; display: flex; align-items: center; gap: 6px;">
-                                            <span>{{ d.country_flag }}</span>
-                                            <span><strong>{{ d.country_name }}</strong></span>
+                                        <span style="color: #64748b; font-size: 11px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            <img src="https://flagcdn.com/20x15/{{ d.country_code }}.png" width="16" height="12" style="border-radius: 2px; vertical-align: middle;" alt="{{ d.country_name }}" onerror="this.style.display='none';">
+                                            <strong>{{ d.country_name }}</strong>
                                             <span>•</span>
                                             <span>{{ d.device }}</span>
                                             <span>•</span>
                                             <span>🕒 {{ d.timestamp }}</span>
                                         </span>
                                     </div>
-                                    <div>
+                                    <div class="download-actions-wrap">
+                                        <!-- BOTÃO DIRETO PARA O VÍDEO NO EROME -->
+                                        <a href="{{ d.erome_url }}" target="_blank" rel="noopener noreferrer" class="btn-erome" title="Abrir vídeo original no Erome.com">
+                                            <span>🔗</span> <span>Erome</span>
+                                        </a>
+
                                         {% if d.url %}
-                                            <a href="/proxy_download?url={{ d.url }}&title={{ d.title }}" target="_blank" class="btn-open-video">
-                                                ▶️ Abrir
+                                            <a href="/proxy_download?url={{ d.url }}&title={{ d.title }}" target="_blank" class="btn-open-video" title="Baixar MP4">
+                                                <span>▶️</span>
                                             </a>
                                         {% endif %}
                                     </div>
@@ -1027,6 +1142,7 @@
             </div>
         </div>
 <!-- ABA 2: ANÚNCIOS & MONETIZAÇÃO -->
+
 
         <div id="tab-ads" class="tab-pane">
             <div class="data-card">
@@ -1195,6 +1311,7 @@
     </div>
 
 
+    
     <script>
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1204,7 +1321,6 @@
             const target = document.getElementById('tab-' + tabId);
             if (target) {
                 target.classList.add('active');
-                // Se for analytics, disparar resize nos gráficos
                 if (tabId === 'analytics') {
                     window.dispatchEvent(new Event('resize'));
                 }
@@ -1224,58 +1340,60 @@
         // 1. Inicializar Mapa Vetorial Interativo com jsVectorMap
         let mapInstance = null;
         try {
-            mapInstance = new jsVectorMap({
-                selector: '#world-map',
-                map: 'world_merc',
-                backgroundColor: 'transparent',
-                draggable: true,
-                zoomButtons: true,
-                zoomOnScroll: false,
-                regionStyle: {
-                    initial: {
-                        fill: '#1e293b',
-                        stroke: '#334155',
-                        strokeWidth: 0.7,
-                        fillOpacity: 1
+            if (typeof jsVectorMap !== 'undefined') {
+                mapInstance = new jsVectorMap({
+                    selector: '#world-map',
+                    map: 'world_merc',
+                    backgroundColor: 'transparent',
+                    draggable: true,
+                    zoomButtons: true,
+                    zoomOnScroll: false,
+                    regionStyle: {
+                        initial: {
+                            fill: '#1e293b',
+                            stroke: '#334155',
+                            strokeWidth: 0.7,
+                            fillOpacity: 1
+                        },
+                        hover: {
+                            fill: '#38bdf8',
+                            cursor: 'pointer'
+                        },
+                        selected: {
+                            fill: '#0284c7'
+                        }
                     },
-                    hover: {
-                        fill: '#38bdf8',
-                        cursor: 'pointer'
+                    visualizeData: {
+                        scale: ['#0e7490', '#06b6d4', '#38bdf8'],
+                        values: mapDataValues
                     },
-                    selected: {
-                        fill: '#0284c7'
+                    onRegionTooltipShow(event, tooltip, code) {
+                        const country = countriesLookup[code];
+                        if (country) {
+                            tooltip.text(
+                                `<div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 4px 6px;">
+                                    <div style="font-weight: 800; color: #fff; display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
+                                        <img src="https://flagcdn.com/28x21/${code.toLowerCase()}.png" width="20" height="15" style="border-radius: 2px;" onerror="this.style.display='none';">
+                                        <span>${country.name}</span>
+                                        <span style="font-size: 10px; opacity: 0.7; font-family: monospace;">(${code})</span>
+                                    </div>
+                                    <div style="color: #94a3b8; font-size: 11px;">Região: <strong style="color: #e2e8f0;">${country.region}</strong></div>
+                                    <div style="color: #38bdf8; font-weight: 700; margin-top: 5px;">👥 ${country.visits.toLocaleString()} acessos (${country.visits_pct}%)</div>
+                                    <div style="color: #34d399; font-weight: 700;">📥 ${country.downloads.toLocaleString()} downloads (${country.conversion}% conv.)</div>
+                                </div>`,
+                                true
+                            );
+                        } else {
+                            tooltip.text(
+                                `<div style="padding: 4px 6px; font-size: 12px; color: #94a3b8;">
+                                    <strong>${code}</strong>: Sem acessos registrados
+                                </div>`,
+                                true
+                            );
+                        }
                     }
-                },
-                visualizeData: {
-                    scale: ['#0e7490', '#06b6d4', '#38bdf8'],
-                    values: mapDataValues
-                },
-                onRegionTooltipShow(event, tooltip, code) {
-                    const country = countriesLookup[code];
-                    if (country) {
-                        tooltip.text(
-                            `<div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 4px 6px;">
-                                <div style="font-weight: 800; color: #fff; display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
-                                    <span style="font-size: 16px;">${country.flag}</span>
-                                    <span>${country.name}</span>
-                                    <span style="font-size: 10px; opacity: 0.7; font-family: monospace;">(${code})</span>
-                                </div>
-                                <div style="color: #94a3b8; font-size: 11px;">Região: <strong style="color: #e2e8f0;">${country.region}</strong></div>
-                                <div style="color: #38bdf8; font-weight: 700; margin-top: 5px;">👥 ${country.visits.toLocaleString()} acessos (${country.visits_pct}%)</div>
-                                <div style="color: #34d399; font-weight: 700;">📥 ${country.downloads.toLocaleString()} downloads (${country.conversion}% conv.)</div>
-                            </div>`,
-                            true
-                        );
-                    } else {
-                        tooltip.text(
-                            `<div style="padding: 4px 6px; font-size: 12px; color: #94a3b8;">
-                                <strong>${code}</strong>: Sem acessos registrados
-                            </div>`,
-                            true
-                        );
-                    }
-                }
-            });
+                });
+            }
         } catch (e) {
             console.error("Erro ao carregar jsVectorMap:", e);
         }
@@ -1283,63 +1401,65 @@
         // 2. Inicializar Gráfico de Séries Temporais com ApexCharts
         let chartTimeseries = null;
         try {
-            const optionsTimeseries = {
-                series: [
-                    {
-                        name: 'Visitantes Únicos',
-                        data: timeseries7d.visits
+            if (typeof ApexCharts !== 'undefined') {
+                const optionsTimeseries = {
+                    series: [
+                        {
+                            name: 'Visitantes Únicos',
+                            data: timeseries7d.visits
+                        },
+                        {
+                            name: 'Vídeos Baixados',
+                            data: timeseries7d.downloads
+                        }
+                    ],
+                    chart: {
+                        type: 'area',
+                        height: 290,
+                        toolbar: { show: false },
+                        animations: { enabled: true, easing: 'easeinout', speed: 800 },
+                        background: 'transparent'
                     },
-                    {
-                        name: 'Vídeos Baixados',
-                        data: timeseries7d.downloads
+                    colors: ['#38bdf8', '#10b981'],
+                    dataLabels: { enabled: false },
+                    stroke: { curve: 'smooth', width: 3 },
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.45,
+                            opacityTo: 0.05,
+                            stops: [0, 95, 100]
+                        }
+                    },
+                    grid: {
+                        borderColor: 'rgba(255, 255, 255, 0.06)',
+                        strokeDashArray: 4,
+                        yaxis: { lines: { show: true } }
+                    },
+                    xaxis: {
+                        categories: timeseries7d.labels,
+                        labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                    },
+                    yaxis: {
+                        labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } }
+                    },
+                    tooltip: {
+                        theme: 'dark',
+                        x: { show: true },
+                        style: { fontSize: '12px', fontFamily: 'inherit' }
+                    },
+                    legend: {
+                        position: 'top',
+                        horizontalAlign: 'right',
+                        labels: { colors: '#94a3b8' }
                     }
-                ],
-                chart: {
-                    type: 'area',
-                    height: 290,
-                    toolbar: { show: false },
-                    animations: { enabled: true, easing: 'easeinout', speed: 800 },
-                    background: 'transparent'
-                },
-                colors: ['#38bdf8', '#10b981'],
-                dataLabels: { enabled: false },
-                stroke: { curve: 'smooth', width: 3 },
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.45,
-                        opacityTo: 0.05,
-                        stops: [0, 95, 100]
-                    }
-                },
-                grid: {
-                    borderColor: 'rgba(255, 255, 255, 0.06)',
-                    strokeDashArray: 4,
-                    yaxis: { lines: { show: true } }
-                },
-                xaxis: {
-                    categories: timeseries7d.labels,
-                    labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } },
-                    axisBorder: { show: false },
-                    axisTicks: { show: false }
-                },
-                yaxis: {
-                    labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } }
-                },
-                tooltip: {
-                    theme: 'dark',
-                    x: { show: true },
-                    style: { fontSize: '12px', fontFamily: 'inherit' }
-                },
-                legend: {
-                    position: 'top',
-                    horizontalAlign: 'right',
-                    labels: { colors: '#94a3b8' }
-                }
-            };
-            chartTimeseries = new ApexCharts(document.querySelector("#chart-timeseries"), optionsTimeseries);
-            chartTimeseries.render();
+                };
+                chartTimeseries = new ApexCharts(document.querySelector("#chart-timeseries"), optionsTimeseries);
+                chartTimeseries.render();
+            }
         } catch (e) {
             console.error("Erro ao carregar ApexCharts Timeseries:", e);
         }
@@ -1375,48 +1495,50 @@
         // 3. Inicializar Gráfico Donut de Dispositivos com ApexCharts
         let chartDevices = null;
         try {
-            const optionsDevices = {
-                series: deviceStats.series,
-                labels: deviceStats.labels,
-                chart: {
-                    type: 'donut',
-                    height: 220,
-                    background: 'transparent'
-                },
-                colors: ['#38bdf8', '#10b981', '#c084fc'],
-                stroke: { width: 2, colors: ['#0f172a'] },
-                dataLabels: { enabled: false },
-                legend: { show: false },
-                tooltip: {
-                    theme: 'dark',
-                    y: {
-                        formatter: function(val) {
-                            return val + " acessos";
+            if (typeof ApexCharts !== 'undefined') {
+                const optionsDevices = {
+                    series: deviceStats.series,
+                    labels: deviceStats.labels,
+                    chart: {
+                        type: 'donut',
+                        height: 220,
+                        background: 'transparent'
+                    },
+                    colors: ['#38bdf8', '#10b981', '#c084fc'],
+                    stroke: { width: 2, colors: ['#0f172a'] },
+                    dataLabels: { enabled: false },
+                    legend: { show: false },
+                    tooltip: {
+                        theme: 'dark',
+                        y: {
+                            formatter: function(val) {
+                                return val + " acessos";
+                            }
                         }
-                    }
-                },
-                plotOptions: {
-                    pie: {
-                        donut: {
-                            size: '72%',
-                            labels: {
-                                show: true,
-                                total: {
+                    },
+                    plotOptions: {
+                        pie: {
+                            donut: {
+                                size: '72%',
+                                labels: {
                                     show: true,
-                                    label: 'Mobile',
-                                    color: '#94a3b8',
-                                    fontSize: '12px',
-                                    formatter: function() {
-                                        return deviceStats.mobile_pct + "%";
+                                    total: {
+                                        show: true,
+                                        label: 'Mobile',
+                                        color: '#94a3b8',
+                                        fontSize: '12px',
+                                        formatter: function() {
+                                            return deviceStats.mobile_pct + "%";
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-            };
-            chartDevices = new ApexCharts(document.querySelector("#chart-devices"), optionsDevices);
-            chartDevices.render();
+                };
+                chartDevices = new ApexCharts(document.querySelector("#chart-devices"), optionsDevices);
+                chartDevices.render();
+            }
         } catch (e) {
             console.error("Erro ao carregar ApexCharts Devices:", e);
         }
@@ -1425,8 +1547,10 @@
         async function refreshDashboard() {
             const btn = document.getElementById('btnRefresh');
             const icon = document.getElementById('refreshIcon');
-            icon.style.display = 'inline-block';
-            icon.style.animation = 'spin 0.8s linear infinite';
+            if (icon) {
+                icon.style.display = 'inline-block';
+                icon.style.animation = 'spin 0.8s linear infinite';
+            }
             
             try {
                 const res = await fetch('/{{ current_slug }}/api/stats');
@@ -1452,14 +1576,18 @@
                         });
                     }
 
-                    // Notificação suave
-                    btn.style.borderColor = '#10b981';
-                    setTimeout(() => { btn.style.borderColor = 'var(--panel-border)'; }, 1000);
+                    // Notificação visual suave
+                    if (btn) {
+                        btn.style.borderColor = '#10b981';
+                        setTimeout(() => { btn.style.borderColor = 'var(--panel-border)'; }, 1000);
+                    }
                 }
             } catch (err) {
                 console.error("Erro ao atualizar métricas:", err);
             } finally {
-                setTimeout(() => { icon.style.animation = ''; }, 600);
+                if (icon) {
+                    setTimeout(() => { icon.style.animation = ''; }, 600);
+                }
             }
         }
 

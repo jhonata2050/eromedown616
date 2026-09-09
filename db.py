@@ -1,5 +1,7 @@
 import sqlite3
 import os
+import re
+import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'analytics.db')
@@ -26,22 +28,26 @@ def init_db():
                 ip TEXT,
                 country TEXT,
                 path TEXT,
+                device TEXT DEFAULT "Desktop",
+                os TEXT DEFAULT "Outro",
+                browser TEXT DEFAULT "Outro",
+                city TEXT DEFAULT "",
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Tabela de registros de downloads com URL
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS downloads (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
                 country TEXT,
                 url TEXT,
+                device TEXT DEFAULT "Desktop",
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
-        # Migração automática se as tabelas já existirem sem as novas colunas analíticas
+        # Migração automática se as tabelas já existirem sem as novas colunas
         cursor.execute("PRAGMA table_info(visits)")
         v_cols = [r[1] for r in cursor.fetchall()]
         for col, col_def in [
@@ -128,16 +134,16 @@ def update_setting(key, value):
         conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, value))
         conn.commit()
 
-def set_admin_password(plain_password):
-    hashed = generate_password_hash(plain_password)
-    update_setting('admin_password_hash', hashed)
+def set_admin_password(new_password):
+    new_hash = generate_password_hash(new_password)
+    update_setting('admin_password_hash', new_hash)
 
-def set_admin_credentials(username, plain_password=None):
-    if username:
-        update_setting('admin_username', username.strip())
-    if plain_password:
-        hashed = generate_password_hash(plain_password)
-        update_setting('admin_password_hash', hashed)
+def set_admin_credentials(new_username, new_password):
+    if new_username:
+        update_setting('admin_username', new_username.strip())
+    if new_password:
+        new_hash = generate_password_hash(new_password)
+        update_setting('admin_password_hash', new_hash)
 
 def verify_admin_credentials(username, plain_password):
     settings = get_settings()
@@ -261,6 +267,25 @@ def parse_device_info(ua_string):
     else:
         browser = 'Outro'
     return device, os, browser
+
+def extract_erome_url(url, title):
+    if not url:
+        clean_title = re.sub(r' - Parte \d+', '', (title or '')).strip()
+        clean_title = re.sub(r'[\/*?:"<>|]', '', clean_title)
+        return f"https://www.erome.com/search?q={urllib.parse.quote(clean_title)}"
+    # Se já é URL de página/álbum no erome
+    if 'erome.com/a/' in url:
+        return url
+    # Se é CDN do erome (ex: https://v16.erome.com/8298/HcdQAa7P/Ib1xgBFk_720p.mp4)
+    m = re.search(r'erome\.com/\d+/([a-zA-Z0-9_-]+)/', url)
+    if m:
+        album_id = m.group(1)
+        return f"https://www.erome.com/a/{album_id}"
+    if 'tiktok.com' in url or 'twitter.com' in url or 'instagram.com' in url:
+        return url
+    clean_title = re.sub(r' - Parte \d+', '', (title or '')).strip()
+    clean_title = re.sub(r'[\/*?:"<>|]', '', clean_title)
+    return f"https://www.erome.com/search?q={urllib.parse.quote(clean_title)}"
 
 def log_visit(ip, country, path, device='Desktop', os_name='Outro', browser='Outro', city=''):
     try:
@@ -386,6 +411,7 @@ def get_stats():
         
         # Calcular porcentagens e taxas de conversão por país
         for c in countries_list:
+            c['code_lower'] = c['code'].lower()
             c['visits_pct'] = round((c['visits'] / max(total_visits, 1)) * 100, 1)
             c['downloads_pct'] = round((c['downloads'] / max(total_downloads, 1)) * 100, 1)
             c['conversion'] = round((c['downloads'] / max(c['visits'], 1)) * 100, 1)
@@ -499,6 +525,12 @@ def get_stats():
             LIMIT 15
         ''').fetchall()
         
+        enriched_top_videos = []
+        for v in top_videos:
+            v_dict = dict(v)
+            v_dict['erome_url'] = extract_erome_url(v_dict.get('url'), v_dict.get('title'))
+            enriched_top_videos.append(v_dict)
+
         # Downloads Recentes em Tempo Real
         recent_downloads = conn.execute('''
             SELECT id, title, country, url, timestamp, device
@@ -507,13 +539,15 @@ def get_stats():
             LIMIT 20
         ''').fetchall()
 
-        # Enriquecer recent downloads com bandeira do país
+        # Enriquecer recent downloads com bandeira do país e link do Erome
         enriched_recent = []
         for r in recent_downloads:
             item = dict(r)
-            _, c_name, c_flag, _ = resolve_country(item.get('country'))
+            c_code, c_name, c_flag, _ = resolve_country(item.get('country'))
+            item['country_code'] = c_code.lower()
             item['country_name'] = c_name
             item['country_flag'] = c_flag
+            item['erome_url'] = extract_erome_url(item.get('url'), item.get('title'))
             enriched_recent.append(item)
 
         return {
@@ -552,7 +586,7 @@ def get_stats():
             
             'device_stats': device_stats,
             'os_data': os_data,
-            'top_videos': [dict(r) for r in top_videos],
+            'top_videos': enriched_top_videos,
             'recent_downloads': enriched_recent
         }
 

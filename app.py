@@ -149,7 +149,7 @@ def get_video():
                 'title': vid_title,
                 'filename': filename,
                 'raw_url': link,
-                'url': f'/proxy_download?url={safe_url}&title={safe_title}&filename={urllib.parse.quote(filename)}'
+                'url': f'/proxy_download?url={safe_url}&title={safe_title}&filename={urllib.parse.quote(filename)}&page_url={urllib.parse.quote(url)}'
             })
         
         return jsonify({'success': True, 'title': page_title, 'videos': videos})
@@ -201,7 +201,8 @@ def proxy_download():
                 country = get_client_country()
                 ua = request.headers.get('User-Agent', '')
                 device, _, _ = parse_device_info(ua)
-                log_download(title, country, url=video_url, device=device)
+                page_url = request.args.get('page_url') or video_url
+                log_download(title, country, url=page_url, device=device)
             except Exception as le:
                 print("Erro log:", le)
 
