@@ -475,6 +475,14 @@ a {
     margin-top: 4px;
 }
 
+.video-item-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
 .btn-video-download {
     background: var(--gradient-primary);
     color: #ffffff;
@@ -495,6 +503,18 @@ a {
 
 .btn-video-download:hover {
     opacity: 0.9;
+}
+
+.btn-direct-link {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: underline;
+    transition: color 0.2s ease;
+    padding: 2px 4px;
+}
+
+.btn-direct-link:hover {
+    color: var(--primary);
 }
 
 /* ==========================================================================
@@ -1038,6 +1058,11 @@ a {
         overflow: hidden;
         word-break: break-word;
     }
+    .video-item-actions {
+        width: 100%;
+        align-items: stretch;
+        gap: 8px;
+    }
     .btn-video-download {
         width: 100%;
         justify-content: center;
@@ -1046,6 +1071,12 @@ a {
         min-height: 48px; /* Touch target amplo para celular */
         border-radius: 8px;
         box-shadow: 0 4px 15px rgba(238, 95, 150, 0.25);
+    }
+    .btn-direct-link {
+        text-align: center;
+        font-size: 0.82rem;
+        padding: 6px;
+        color: var(--text-muted);
     }
 
     .batch-progress-wrapper {

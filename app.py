@@ -73,51 +73,72 @@ def index():
 
 @app.route('/social')
 def social_page():
-    settings = get_settings()
-    return render_template('social.html', settings=settings)
+    return redirect('/', code=301)
 
 @app.route('/get_social_video', methods=['POST'])
 def get_social_video():
-    url = request.form.get('url')
-    if not url:
-        return jsonify({'error': 'Por favor, insira o link do vídeo.'})
-        
-    result = process_social_url(url)
-    if result.get('success'):
-        country = get_client_country()
-        log_download(result.get('title', 'Vídeo Social'), country, url=url)
-        
-    return jsonify(result)
+    return jsonify({'error': 'Downloader de redes sociais desativado. Use o EromeDown para baixar vídeos do Erome.'})
+
+@app.after_request
+def add_no_cache_headers(response):
+    # Força os navegadores móveis e Cloudflare a não manterem cache de páginas HTML
+    if 'text/html' in response.headers.get('Content-Type', ''):
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
 
 @app.route('/get_video', methods=['POST'])
 @app.route('/get_videos', methods=['POST'])
 def get_video():
-    url = request.form.get('url')
-    if not url or 'erome.com' not in url:
+    url = request.form.get('url', '').strip()
+    if not url:
+        return jsonify({'error': 'Por favor, insira um link válido do erome.com'})
+
+    if not url.startswith(('http://', 'https://')):
+        url = 'https://' + url
+
+    if 'erome.com' not in url:
         return jsonify({'error': 'Por favor, insira um link válido do erome.com'})
 
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-        resp = session.get(url, headers=headers, timeout=10, verify=False)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8',
+            'Referer': 'https://www.erome.com/'
+        }
+        resp = session.get(url, headers=headers, timeout=15, verify=False)
         resp.raise_for_status()
         html = resp.text
         
-        titles = re.findall(r'<title>(.*?)</title>', html)
+        titles = re.findall(r'<title>(.*?)</title>', html, re.IGNORECASE)
         page_title = titles[0].replace(' - EroMe', '').replace(' - Porn Videos & Photos', '').strip() if titles else 'Video Erome'
-        page_title = re.sub(r'[\/*?:"<>|]', "", page_title)
+        page_title = re.sub(r'[\/*?:"<>|]', "", page_title).strip() or 'Video Erome'
         
-        mp4_links = re.findall(r'<source src="([^"]+\.mp4)"', html)
-        if not mp4_links:
-            mp4_links = re.findall(r'src="([^"]+\.mp4)"', html)
-            
+        # Procura por todos os padrões de vídeo MP4 no HTML do Erome
+        mp4_candidates = []
+        mp4_candidates.extend(re.findall(r'<source[^>]+(?:src|data-src)=[\"\']([^\"\']+\.mp4[^\"\']*)[\"\']', html, re.IGNORECASE))
+        mp4_candidates.extend(re.findall(r'<video[^>]+(?:src|data-src)=[\"\']([^\"\']+\.mp4[^\"\']*)[\"\']', html, re.IGNORECASE))
+        mp4_candidates.extend(re.findall(r'[\"\'](https?://[^\"]+?\.mp4[^\"]*?)[\"\']', html, re.IGNORECASE))
+        mp4_candidates.extend(re.findall(r'[\"\'](//[^\"]+?\.mp4[^\"]*?)[\"\']', html, re.IGNORECASE))
+        
         unique_links = []
-        for link in mp4_links:
-            if link not in unique_links:
-                unique_links.append(link)
+        for raw_link in mp4_candidates:
+            clean_link = raw_link.strip().replace('&amp;', '&')
+            if clean_link.startswith('//'):
+                clean_link = 'https:' + clean_link
+            elif clean_link.startswith('/'):
+                clean_link = 'https://www.erome.com' + clean_link
+            elif not clean_link.startswith('http'):
+                clean_link = 'https://' + clean_link
+                
+            if clean_link not in unique_links:
+                unique_links.append(clean_link)
                 
         videos = []
         for i, link in enumerate(unique_links):
-            vid_title = f'{page_title} - Parte {i+1}'
+            vid_title = f'{page_title} - Parte {i+1}' if len(unique_links) > 1 else page_title
             safe_title = urllib.parse.quote(vid_title)
             safe_url = urllib.parse.quote(link)
             filename = f'{vid_title}.mp4'
@@ -143,14 +164,17 @@ def proxy_download():
     skip_count = request.args.get('skipCount', '0') in ('1', 'true', 'True')
     
     if not video_url:
-        return "URL não fornecida", 400
+        return "URL do vídeo ausente", 400
         
-    if ext not in ('mp4', 'mp3', 'webm', 'm4a', 'wav'):
-        ext = 'mp4'
+    if video_url.startswith('//'):
+        video_url = 'https:' + video_url
+    elif not video_url.startswith('http'):
+        video_url = 'https://' + video_url
         
-    # Headers dinâmicos de acordo com a plataforma de origem
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Referer': 'https://www.erome.com/',
+        'Origin': 'https://www.erome.com'
     }
     
     if 'erome.com' in video_url or platform == 'erome':

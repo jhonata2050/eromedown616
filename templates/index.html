@@ -63,7 +63,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://www.erome.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v=20260909_3">
     
     <!-- DADOS ESTRUTURADOS JSON-LD (GOOGLE RICH SNIPPETS, RATINGS, FAQ, HOW-TO) -->
     <script type="application/ld+json">
@@ -176,7 +176,7 @@
       ]
     }
     </script>
-    <script src="/static/i18n.js"></script>
+    <script src="/static/i18n.js?v=20260909_3"></script>
 </head>
 <body>
 
@@ -199,18 +199,9 @@
             </nav>
 
             <div class="header-actions">
-                <div class="mode-switcher">
-                    <a href="/" class="mode-btn active" data-i18n="mode_erome">
-                        <span>🔞</span> Erome
-                    </a>
-                    <a href="/social" class="mode-btn" data-i18n="mode_social">
-                        <span>📱</span> Redes Sociais
-                    </a>
-                </div>
-
                 <!-- Seletor Manual de 5 Idiomas: PT, EN, ES, FR, RU -->
-                <div style="display: flex; gap: 3px;" class="lang-selector-group">
-                    <button class="lang-btn" data-lang="pt" aria-label="Português">PT</button>
+                <div class="lang-selector-group">
+                    <button class="lang-btn active" data-lang="pt" aria-label="Português">PT</button>
                     <button class="lang-btn" data-lang="en" aria-label="English">EN</button>
                     <button class="lang-btn" data-lang="es" aria-label="Español">ES</button>
                     <button class="lang-btn" data-lang="fr" aria-label="Français">FR</button>
@@ -571,9 +562,15 @@
                                             <span class="video-item-badge">MP4 • 1080p Original</span>
                                         </div>
                                     </div>
-                                    <a href="${vid.url}" download="${vid.filename || 'video.mp4'}" class="btn-video-download" onclick="handleSingleDownload(this, ${index})">
-                                        ⬇️ ${t('download_single_btn')}
-                                    </a>
+                                    <div class="video-item-actions">
+                                        <a href="${vid.url}" download="${vid.filename || 'video.mp4'}" class="btn-video-download" onclick="handleSingleDownload(this, ${index})">
+                                            ⬇️ ${t('download_single_btn')}
+                                        </a>
+                                        ${vid.raw_url ? `
+                                        <a href="${vid.raw_url}" target="_blank" rel="noopener noreferrer" class="btn-direct-link">
+                                            ↗️ Abrir direto
+                                        </a>` : ''}
+                                    </div>
                                 </div>
                             `;
                         });
