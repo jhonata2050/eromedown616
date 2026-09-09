@@ -66,6 +66,40 @@ def init_db():
         for k, v in default_settings.items():
             cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, v))
             
+        # Códigos oficiais Adsterra para eromedown.org
+        adsterra_popunder = '''<script src="https://pl31265096.profitableratecpmnetwork.com/6e/0f/1a/6e0f1afe4d28ef54382e19c46ef347be.js"></script>\n<script src="https://pl31265098.profitableratecpmnetwork.com/96/fe/d1/96fed15682f021cbc51e241b2d3f9ff8.js"></script>'''
+        
+        adsterra_banner_728 = '''<script>
+  atOptions = {
+    'key' : '8c6c878cb60cbd537487677d0daf6bd5',
+    'format' : 'iframe',
+    'height' : 90,
+    'width' : 728,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highrevenueformat.com/8c6c878cb60cbd537487677d0daf6bd5/invoke.js"></script>'''
+
+        adsterra_banner_160 = '''<script>
+  atOptions = {
+    'key' : '52197188a39c413f69dcb612918d1dd3',
+    'format' : 'iframe',
+    'height' : 600,
+    'width' : 160,
+    'params' : {}
+  };
+</script>
+<script src="https://www.highrevenueformat.com/52197188a39c413f69dcb612918d1dd3/invoke.js"></script>'''
+
+        cursor.execute("SELECT value FROM settings WHERE key = 'ad_popunder'")
+        row = cursor.fetchone()
+        if not row or not row[0] or not row[0].strip():
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_popunder', ?)", (adsterra_popunder,))
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_bottom', ?)", (adsterra_banner_728,))
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_left', ?)", (adsterra_banner_160,))
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_right', ?)", (adsterra_banner_160,))
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ads_enabled', '1')")
+            
         conn.commit()
 
 def get_settings():
