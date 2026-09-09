@@ -182,6 +182,81 @@
         .kpi-card.green::after { background: var(--accent-green); }
         .kpi-card.purple::after { background: var(--accent-purple); }
         .kpi-card.rose::after { background: #fb7185; }
+        .kpi-card.blue::after { background: #3b82f6; }
+        .kpi-card.amber::after { background: #f59e0b; }
+        .kpi-card.emerald::after { background: #10b981; }
+
+        .section-header-badge {
+            font-size: 13px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0 6px 0;
+        }
+
+        .bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+        }
+
+        .bar-fill-green {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #34d399, #10b981);
+        }
+
+        .trend-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+            height: 120px;
+            padding: 16px 8px 4px 8px;
+        }
+
+        .trend-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .trend-bar {
+            width: 100%;
+            max-width: 32px;
+            background: linear-gradient(180deg, #38bdf8 0%, rgba(56, 189, 248, 0.25) 100%);
+            border-radius: 4px 4px 0 0;
+            min-height: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .trend-label {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .trend-val {
+            font-size: 11px;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
 
         .kpi-title {
             font-size: 12px;
@@ -444,21 +519,60 @@
 
         <!-- ABA 1: ANALYTICS & MÉTRICAS -->
         <div id="tab-analytics" class="tab-pane active">
-            <!-- KPIs -->
+            <!-- SEÇÃO: VISITANTES (DIÁRIO, SEMANAL, MENSAL, TOTAL) -->
+            <div class="section-header-badge">
+                <span>👥</span> Tráfego & Visitantes
+            </div>
             <div class="kpi-grid">
                 <div class="kpi-card cyan">
                     <span class="kpi-title">Visitas Hoje</span>
                     <span class="kpi-number">{{ stats.today_visits }}</span>
-                    <span class="kpi-footer">Total acumulado: <strong>{{ stats.total_visits }}</strong></span>
+                    <span class="kpi-footer">Acessos únicos nas últimas 24h</span>
                 </div>
 
-                <div class="kpi-card green">
-                    <span class="kpi-title">Downloads Hoje</span>
-                    <span class="kpi-number">{{ stats.today_downloads }}</span>
-                    <span class="kpi-footer">Total acumulado: <strong>{{ stats.total_downloads }}</strong></span>
+                <div class="kpi-card blue">
+                    <span class="kpi-title">Visitas Semanal</span>
+                    <span class="kpi-number">{{ stats.weekly_visits }}</span>
+                    <span class="kpi-footer">Últimos 7 dias acumulados</span>
                 </div>
 
                 <div class="kpi-card purple">
+                    <span class="kpi-title">Visitas Mensal</span>
+                    <span class="kpi-number">{{ stats.monthly_visits }}</span>
+                    <span class="kpi-footer">Últimos 30 dias acumulados</span>
+                </div>
+
+                <div class="kpi-card cyan">
+                    <span class="kpi-title">Total Geral</span>
+                    <span class="kpi-number">{{ stats.total_visits }}</span>
+                    <span class="kpi-footer">Histórico total de acessos</span>
+                </div>
+            </div>
+
+            <!-- SEÇÃO: DOWNLOADS (DIÁRIO, SEMANAL, MENSAL, TOTAL) -->
+            <div class="section-header-badge" style="margin-top: 20px;">
+                <span>📥</span> Vídeos Baixados & Conversão
+            </div>
+            <div class="kpi-grid">
+                <div class="kpi-card green">
+                    <span class="kpi-title">Downloads Hoje</span>
+                    <span class="kpi-number">{{ stats.today_downloads }}</span>
+                    <span class="kpi-footer">Arquivos baixados hoje</span>
+                </div>
+
+                <div class="kpi-card emerald">
+                    <span class="kpi-title">Downloads Semanal</span>
+                    <span class="kpi-number">{{ stats.weekly_downloads }}</span>
+                    <span class="kpi-footer">Últimos 7 dias</span>
+                </div>
+
+                <div class="kpi-card green">
+                    <span class="kpi-title">Downloads Mensal</span>
+                    <span class="kpi-number">{{ stats.monthly_downloads }}</span>
+                    <span class="kpi-footer">Últimos 30 dias</span>
+                </div>
+
+                <div class="kpi-card amber">
                     <span class="kpi-title">Taxa de Conversão</span>
                     <span class="kpi-number">
                         {% if stats.total_visits > 0 %}
@@ -467,37 +581,50 @@
                             0%
                         {% endif %}
                     </span>
-                    <span class="kpi-footer">Média de downloads por visitante</span>
-                </div>
-
-                <div class="kpi-card rose">
-                    <span class="kpi-title">Monetização Ativa</span>
-                    <span class="kpi-number">
-                        {% if settings.ads_enabled == '1' %}
-                            Ativo
-                        {% else %}
-                            Pausado
-                        {% endif %}
-                    </span>
-                    <span class="kpi-footer">Espaços de anúncios preenchidos</span>
+                    <span class="kpi-footer">Total: <strong>{{ stats.total_downloads }}</strong> vídeos salvos</span>
                 </div>
             </div>
 
-            <!-- Duas Colunas: Geografia + Atividade Recente -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px;">
-                <!-- Países / Regiões -->
+            <!-- GRÁFICO VISUAL DOS ÚLTIMOS 7 DIAS -->
+            {% if stats.trend_visits %}
+            <div class="data-card" style="margin-top: 10px;">
+                <div class="data-card-header">
+                    <span class="data-card-title">📈 Tendência Diária de Acessos (Últimos 7 Dias)</span>
+                    <small style="color: #64748b;">Evolução de Tráfego</small>
+                </div>
+                <div class="trend-chart">
+                    {% for t in stats.trend_visits %}
+                        <div class="trend-col">
+                            <span class="trend-val">{{ t.total }}</span>
+                            <div class="trend-bar" style="height: {{ (t.total * 8) if (t.total * 8) <= 80 else 80 }}px;"></div>
+                            <span class="trend-label">{{ t.dia }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- SEGREGAÇÃO POR PAÍS (DUAS COLUNAS: VISITANTES + DOWNLOADS) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; margin-top: 10px;">
+                <!-- Visitantes por País -->
                 <div class="data-card">
                     <div class="data-card-header">
-                        <span class="data-card-title">🌍 Tráfego por Região / País</span>
+                        <span class="data-card-title">🌍 Visitantes por País</span>
                         <small style="color: #64748b;">Cloudflare CF-IPCountry</small>
                     </div>
 
                     {% if stats.top_countries %}
                         <div>
                             {% for c in stats.top_countries %}
-                                <div class="country-row">
-                                    <span>📍 <strong>{{ c.country }}</strong></span>
-                                    <span class="badge-country">{{ c.count }} acessos</span>
+                                {% set pct = (c.count / (stats.total_visits if stats.total_visits > 0 else 1) * 100) | round(1) %}
+                                <div style="padding: 10px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                                        <span>📍 <strong>{{ c.country }}</strong></span>
+                                        <span style="color: #38bdf8; font-weight: 700;">{{ c.count }} acessos ({{ pct }}%)</span>
+                                    </div>
+                                    <div class="bar-container">
+                                        <div class="bar-fill" style="width: {{ pct }}%;"></div>
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
@@ -506,19 +633,86 @@
                     {% endif %}
                 </div>
 
-                <!-- Últimos Downloads -->
+                <!-- Downloads por País -->
                 <div class="data-card">
                     <div class="data-card-header">
-                        <span class="data-card-title">📥 Últimos Downloads Concluídos</span>
-                        <small style="color: #64748b;">Tempo Real</small>
+                        <span class="data-card-title">📥 Downloads por País</span>
+                        <small style="color: #64748b;">Onde mais baixam</small>
+                    </div>
+
+                    {% if stats.top_download_countries %}
+                        <div>
+                            {% for c in stats.top_download_countries %}
+                                {% set pct = (c.count / (stats.total_downloads if stats.total_downloads > 0 else 1) * 100) | round(1) %}
+                                <div style="padding: 10px 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                                    <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                                        <span>📍 <strong>{{ c.country }}</strong></span>
+                                        <span style="color: #34d399; font-weight: 700;">{{ c.count }} downloads ({{ pct }}%)</span>
+                                    </div>
+                                    <div class="bar-container">
+                                        <div class="bar-fill-green" style="width: {{ pct }}%;"></div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="color: #64748b; font-size: 13px;">Ainda não há downloads por país suficientes.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- SEÇÃO: VÍDEOS MAIS BAIXADOS & ATIVIDADE RECENTE (DUAS COLUNAS) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 18px; margin-top: 10px;">
+                <!-- Top Vídeos Mais Baixados -->
+                <div class="data-card">
+                    <div class="data-card-header">
+                        <span class="data-card-title">🏆 Top Vídeos Mais Baixados</span>
+                        <small style="color: #64748b;">Ranking</small>
+                    </div>
+
+                    {% if stats.top_videos %}
+                        <div style="max-height: 380px; overflow-y: auto;">
+                            {% for v in stats.top_videos %}
+                                <div class="download-row">
+                                    <div style="display: flex; flex-direction: column; gap: 3px; max-width: 65%;">
+                                        <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ v.title }}">
+                                            🎬 {{ v.title }}
+                                        </span>
+                                        <span style="color: #64748b; font-size: 11px;">
+                                            🔥 <strong>{{ v.count }}x</strong> baixado
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        {% if v.url %}
+                                            <a href="/proxy_download?url={{ v.url }}&title={{ v.title }}" target="_blank" class="btn-open-video" title="Assistir ou Baixar">
+                                                ▶️ Abrir
+                                            </a>
+                                            <button type="button" onclick="navigator.clipboard.writeText('{{ v.url }}'); alert('Link direto copiado!');" class="btn-copy-link" title="Copiar URL">
+                                                📋
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="color: #64748b; font-size: 13px;">Nenhum vídeo baixado ainda.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Últimos Downloads em Tempo Real -->
+                <div class="data-card">
+                    <div class="data-card-header">
+                        <span class="data-card-title">⚡ Últimos Downloads (Tempo Real)</span>
+                        <small style="color: #64748b;">Histórico Recente</small>
                     </div>
 
                     {% if stats.recent_downloads %}
-                        <div style="max-height: 280px; overflow-y: auto;">
+                        <div style="max-height: 380px; overflow-y: auto;">
                             {% for d in stats.recent_downloads %}
                                 <div class="download-row">
                                     <div style="display: flex; flex-direction: column; gap: 3px; max-width: 60%;">
-                                        <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        <span style="font-weight: 600; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ d.title }}">
                                             🎬 {{ d.title }}
                                         </span>
                                         <span style="color: #64748b; font-size: 11px;">
@@ -528,9 +722,9 @@
                                     <div style="display: flex; align-items: center; gap: 8px;">
                                         {% if d.url %}
                                             <a href="/proxy_download?url={{ d.url }}&title={{ d.title }}" target="_blank" class="btn-open-video" title="Assistir ou Baixar o Vídeo">
-                                                ▶️ Abrir Vídeo
+                                                ▶️ Abrir
                                             </a>
-                                            <button type="button" onclick="navigator.clipboard.writeText('{{ d.url }}'); alert('Link direto do vídeo copiado para a área de transferência!');" class="btn-copy-link" title="Copiar URL original">
+                                            <button type="button" onclick="navigator.clipboard.writeText('{{ d.url }}'); alert('Link direto do vídeo copiado!');" class="btn-copy-link" title="Copiar URL original">
                                                 📋
                                             </button>
                                         {% else %}

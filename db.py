@@ -159,30 +159,54 @@ def log_download(title, country, url=None):
 
 def get_stats():
     with get_db() as conn:
-        total_visits = conn.execute('SELECT COUNT(*) FROM visits').fetchone()[0]
-        today_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now")').fetchone()[0]
+        # Métricas de Visitas (Hoje, 7 Dias, 30 Dias, Total)
+        total_visits = conn.execute('SELECT COUNT(*) FROM visits').fetchone()[0] or 0
+        today_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now")').fetchone()[0] or 0
+        weekly_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
+        monthly_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
         
-        total_downloads = conn.execute('SELECT COUNT(*) FROM downloads').fetchone()[0]
-        today_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now")').fetchone()[0]
+        # Métricas de Downloads (Hoje, 7 Dias, 30 Dias, Total)
+        total_downloads = conn.execute('SELECT COUNT(*) FROM downloads').fetchone()[0] or 0
+        today_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now")').fetchone()[0] or 0
+        weekly_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
+        monthly_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
         
-        # Principais países / regiões
+        # Segregação por país dos Visitantes
         top_countries = conn.execute('''
             SELECT country, COUNT(*) as count 
             FROM visits 
             GROUP BY country 
             ORDER BY count DESC 
-            LIMIT 7
+            LIMIT 10
         ''').fetchall()
         
-        # Downloads recentes com a URL do vídeo
+        # Segregação por país dos Downloads
+        top_download_countries = conn.execute('''
+            SELECT country, COUNT(*) as count 
+            FROM downloads 
+            GROUP BY country 
+            ORDER BY count DESC 
+            LIMIT 10
+        ''').fetchall()
+
+        # Top Vídeos Mais Baixados
+        top_videos = conn.execute('''
+            SELECT title, COUNT(*) as count, MAX(url) as url, MAX(timestamp) as last_download
+            FROM downloads
+            GROUP BY title
+            ORDER BY count DESC
+            LIMIT 10
+        ''').fetchall()
+        
+        # Downloads Recentes em Tempo Real
         recent_downloads = conn.execute('''
             SELECT id, title, country, url, timestamp 
             FROM downloads 
             ORDER BY id DESC 
-            LIMIT 15
+            LIMIT 20
         ''').fetchall()
         
-        # Tendência dos últimos 7 dias
+        # Tendência diária dos últimos 7 dias
         trend_visits = conn.execute('''
             SELECT strftime('%d/%m', timestamp) as dia, COUNT(*) as total
             FROM visits
@@ -194,9 +218,17 @@ def get_stats():
         return {
             'total_visits': total_visits,
             'today_visits': today_visits,
+            'weekly_visits': weekly_visits,
+            'monthly_visits': monthly_visits,
+            
             'total_downloads': total_downloads,
             'today_downloads': today_downloads,
+            'weekly_downloads': weekly_downloads,
+            'monthly_downloads': monthly_downloads,
+            
             'top_countries': [dict(r) for r in top_countries],
+            'top_download_countries': [dict(r) for r in top_download_countries],
+            'top_videos': [dict(r) for r in top_videos],
             'recent_downloads': [dict(r) for r in recent_downloads],
             'trend_visits': [dict(r) for r in trend_visits]
         }
