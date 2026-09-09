@@ -287,7 +287,7 @@
                                 <path d="M2 12h20"></path>
                             </svg>
                         </div>
-                        <input type="url" id="url" name="url" class="hero-input-field" placeholder="Cole o link https://www.erome.com/a/... ou digite para buscar" data-i18n-placeholder="search_placeholder" required autocomplete="off">
+                        <input type="url" id="url" name="url" class="hero-input-field" placeholder="Cole o link https://www.erome.com/a/... ou digite para buscar" data-i18n-placeholder="search_placeholder" required autocomplete="off" autocapitalize="none" spellcheck="false">
                         <button type="button" class="hero-paste-btn" onclick="pasteClipboard('url')" data-i18n="paste_btn" aria-label="Colar link">
                             📋 Colar
                         </button>
@@ -571,9 +571,9 @@
                                             <span class="video-item-badge">MP4 • 1080p Original</span>
                                         </div>
                                     </div>
-                                    <button type="button" class="btn-video-download" onclick="downloadSingleVideo(event, ${index}, this)">
+                                    <a href="${vid.url}" download="${vid.filename || 'video.mp4'}" class="btn-video-download" onclick="handleSingleDownload(this, ${index})">
                                         ⬇️ ${t('download_single_btn')}
-                                    </button>
+                                    </a>
                                 </div>
                             `;
                         });
@@ -611,12 +611,13 @@
             }
         }
 
-        // DOWNLOAD EM LOTE ULTRA RÁPIDO (DISPARO SEQUENCIAL NATIVO COMO NO EROMEDIA.APP)
+        // DOWNLOAD EM LOTE OTIMIZADO PARA DESKTOP E MOBILE
         async function downloadAllVideos(btn) {
             if (!currentVideos || currentVideos.length === 0) return;
             
             btn.disabled = true;
             const total = currentVideos.length;
+            const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
             
             const progressWrapper = document.getElementById('batchProgressWrapper');
             const progressLabel = document.getElementById('batchProgressLabel');
@@ -658,7 +659,7 @@
                 
                 setTimeout(() => {
                     if (a.parentElement) a.parentElement.removeChild(a);
-                }, 200);
+                }, 300);
                 
                 setTimeout(() => {
                     if (card) {
@@ -671,49 +672,47 @@
                             cardBtn.style.color = '#4ade80';
                         }
                     }
-                }, 300);
+                }, 400);
                 
-                await new Promise(resolve => setTimeout(resolve, 400));
+                const delay = isMobile ? 1200 : 400;
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
             
             if (batchSpinner) batchSpinner.innerText = '✅';
             if (progressLabel) progressLabel.innerHTML = `<strong>${t('all_started_msg')}</strong>`;
             if (progressBar) progressBar.style.width = '100%';
-            if (batchNoteText) batchNoteText.innerText = t('check_downloads_folder');
+            if (batchNoteText) {
+                if (isMobile) {
+                    batchNoteText.innerHTML = `📱 <strong>Dica celular:</strong> Se o navegador bloqueou múltiplos arquivos, toque individualmente no botão de cada vídeo acima.`;
+                } else {
+                    batchNoteText.innerText = t('check_downloads_folder') || 'Verifique a pasta de Downloads do seu dispositivo.';
+                }
+            }
             
             btn.innerHTML = `✅ ${t('download_all_again_btn')} (${total})`;
             btn.disabled = false;
         }
 
-        function downloadSingleVideo(e, index, btn) {
-            if (e) e.preventDefault();
-            const vid = currentVideos && currentVideos[index] ? currentVideos[index] : null;
-            if (!vid) return;
-            
-            btn.innerText = `⏳ ${t('connecting_btn')}`;
-            btn.style.pointerEvents = 'none';
-            
+        // HANDLER DE DOWNLOAD INDIVIDUAL COM LINK DIRETO (NATIVO NO CELULAR E PC)
+        function handleSingleDownload(btn, index) {
             const card = document.getElementById(`video-card-${index}`);
             if (card) card.classList.add('video-card-downloading');
             
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = vid.url;
-            a.setAttribute('download', (vid.filename || vid.title || 'video') + '.mp4');
-            document.body.appendChild(a);
-            a.click();
+            btn.innerText = `⏳ ${t('connecting_btn')}`;
             
             setTimeout(() => {
-                if (a.parentElement) a.parentElement.removeChild(a);
                 btn.innerText = `✅ ${t('download_started_btn')}`;
                 btn.style.background = 'rgba(74, 222, 128, 0.2)';
                 btn.style.color = '#4ade80';
-                btn.style.pointerEvents = 'auto';
                 if (card) {
                     card.classList.remove('video-card-downloading');
                     card.classList.add('video-card-done');
                 }
-            }, 600);
+            }, 1200);
+        }
+
+        function downloadSingleVideo(e, index, btn) {
+            handleSingleDownload(btn, index);
         }
 
         function triggerSimulatedAd(e, adTitle) {

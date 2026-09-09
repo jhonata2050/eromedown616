@@ -30,6 +30,8 @@ const EromeDown_TRANSLATIONS = {
         download_again_btn: "⬇️ Baixar Novamente",
         download_all_again_btn: "⚡ Baixar Todos Novamente",
         all_started_msg: "✅ Todos os downloads foram iniciados!",
+        batch_note: "Os arquivos estão sendo baixados diretamente para o seu dispositivo.",
+        check_downloads_folder: "Todos os vídeos foram iniciados! Verifique a pasta de Downloads.",
         no_videos_found: "⚠️ Nenhum vídeo encontrado neste post ou álbum.",
         server_error: "❌ Erro de conexão com o servidor. Tente novamente.",
 
@@ -125,6 +127,8 @@ const EromeDown_TRANSLATIONS = {
         download_again_btn: "⬇️ Download Again",
         download_all_again_btn: "⚡ Download All Again",
         all_started_msg: "✅ All downloads have started!",
+        batch_note: "Files are being downloaded directly to your device.",
+        check_downloads_folder: "All downloads started! Check your Downloads folder.",
         no_videos_found: "⚠️ No videos found in this post or album.",
         server_error: "❌ Server connection error. Please try again.",
 
@@ -220,6 +224,8 @@ const EromeDown_TRANSLATIONS = {
         download_again_btn: "⬇️ Descargar Nuevamente",
         download_all_again_btn: "⚡ Descargar Todos Nuevamente",
         all_started_msg: "✅ ¡Todas las descargas han comenzado!",
+        batch_note: "Los archivos se están descargando directamente en tu dispositivo.",
+        check_downloads_folder: "¡Todas las descargas iniciadas! Revisa tu carpeta de Descargas.",
         no_videos_found: "⚠️ No se encontraron videos en este álbum.",
         server_error: "❌ Error de conexión con el servidor. Inténtalo de nuevo.",
 
@@ -315,6 +321,8 @@ const EromeDown_TRANSLATIONS = {
         download_again_btn: "⬇️ Télécharger à Nouveau",
         download_all_again_btn: "⚡ Tout Télécharger à Nouveau",
         all_started_msg: "✅ Tous les téléchargements ont commencé !",
+        batch_note: "Les fichiers sont téléchargés directement sur votre appareil.",
+        check_downloads_folder: "Tous les téléchargements ont commencé ! Vérifiez votre dossier Téléchargements.",
         no_videos_found: "⚠️ Aucune vidéo trouvée dans cet album.",
         server_error: "❌ Erreur de connexion au serveur. Veuillez réessayer.",
 
@@ -410,6 +418,8 @@ const EromeDown_TRANSLATIONS = {
         download_again_btn: "⬇️ Скачать снова",
         download_all_again_btn: "⚡ Скачать все снова",
         all_started_msg: "✅ Все загрузки запущены!",
+        batch_note: "Файлы загружаются напрямую на ваше устройство.",
+        check_downloads_folder: "Все загрузки запущены! Проверьте папку Загрузки.",
         no_videos_found: "⚠️ В этом альбоме видео не найдены.",
         server_error: "❌ Ошибка подключения к серверу. Повторите попытку.",
 

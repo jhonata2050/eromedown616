@@ -182,26 +182,35 @@ def proxy_download():
         if req.status_code >= 400:
             return f"Erro no servidor de mídia: status {req.status_code}", req.status_code
         
-        if filename:
-            clean_name = re.sub(r'[\/*?:"<>|]', "", filename).strip()
-        else:
-            ascii_title = re.sub(r'[^a-zA-Z0-9_\- ]', '', title).strip() or 'video'
-            clean_name = f"{ascii_title}.{ext}"
+        # Sanitização robusta do nome do arquivo
+        clean_name = re.sub(r'[\/*?:"<>|\r\n\t]', "", (filename or title or 'video')).strip()
+        if not clean_name:
+            clean_name = 'video'
             
         if not clean_name.lower().endswith(f'.{ext}'):
             download_filename = f"{clean_name}.{ext}"
         else:
             download_filename = clean_name
             
+        # Fallback ASCII estrito para navegadores móveis (Safari iOS / Android)
+        ascii_fallback = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', download_filename)
+        if not ascii_fallback.lower().endswith(f'.{ext}'):
+            ascii_fallback = f"{ascii_fallback}.{ext}"
+            
         encoded_filename = urllib.parse.quote(download_filename)
-        content_type = 'audio/mpeg' if ext == 'mp3' else req.headers.get('content-type', 'video/mp4')
+        
+        # application/octet-stream garante download direto no iOS Safari e Android Chrome sem tocar player inline
+        content_type = 'audio/mpeg' if ext == 'mp3' else 'application/octet-stream'
         
         resp_headers = {
-            'Content-Disposition': f'attachment; filename="{download_filename}"; filename*=UTF-8\'\'{encoded_filename}',
+            'Content-Disposition': f'attachment; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded_filename}',
             'Content-Type': content_type,
             'Accept-Ranges': 'bytes',
-            'Cache-Control': 'no-cache',
-            'Access-Control-Allow-Origin': '*'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Access-Control-Allow-Origin': '*',
+            'X-Content-Type-Options': 'nosniff'
         }
         
         if 'content-length' in req.headers:

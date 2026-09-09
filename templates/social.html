@@ -82,7 +82,7 @@
                                 <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                             </svg>
                         </div>
-                        <input type="url" id="socialUrl" name="url" class="hero-input-field" placeholder="Cole o link do TikTok, Instagram, Twitter, YouTube Shorts..." data-i18n-placeholder="social_search_placeholder" required autocomplete="off">
+                        <input type="url" id="socialUrl" name="url" class="hero-input-field" placeholder="Cole o link do TikTok, Instagram, Twitter, YouTube Shorts..." data-i18n-placeholder="social_search_placeholder" required autocomplete="off" autocapitalize="none" spellcheck="false">
                         <button type="button" class="hero-paste-btn" onclick="pasteClipboard('socialUrl')" data-i18n="paste_btn">
                             📋 Colar
                         </button>
@@ -258,9 +258,9 @@
                     if (data.medias && data.medias.length > 0) {
                         data.medias.forEach(m => {
                             html += `
-                                <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--card-border);">
-                                    <span style="font-size: 0.9rem; font-weight: 600; color: #f0f0f0;">🎬 ${m.quality || 'HD MP4'} (${m.formattedSize || 'Download Direto'})</span>
-                                    <a href="${m.url}" class="hero-search-btn" style="padding: 8px 16px; font-size: 12px; border-radius: 6px; text-decoration: none;" target="_blank" download>
+                                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); padding: 14px 16px; border-radius: 10px; border: 1px solid var(--card-border); gap: 12px;">
+                                    <span style="font-size: 0.92rem; font-weight: 600; color: #f0f0f0;">🎬 ${m.quality || 'HD MP4'} (${m.formattedSize || 'Download Direto'})</span>
+                                    <a href="${m.url}" class="btn-video-download" style="padding: 10px 18px; font-size: 13px;" download onclick="handleSocialDownload(this)">
                                         ⬇️ ${t('social_download_btn')}
                                     </a>
                                 </div>
@@ -268,7 +268,7 @@
                         });
                     } else if (data.url) {
                         html += `
-                            <a href="${data.url}" class="hero-search-btn" style="width: 100%; padding: 12px; font-size: 14px; border-radius: 8px; text-decoration: none;" target="_blank" download>
+                            <a href="${data.url}" class="btn-video-download" style="width: 100%; justify-content: center; padding: 14px; font-size: 15px;" download onclick="handleSocialDownload(this)">
                                 ⬇️ ${t('social_download_btn')} MP4
                             </a>
                         `;
@@ -290,6 +290,15 @@
                 `;
             }
         });
+
+        function handleSocialDownload(btn) {
+            btn.innerText = `⏳ ${t('connecting_btn')}`;
+            setTimeout(() => {
+                btn.innerText = `✅ ${t('download_started_btn')}`;
+                btn.style.background = 'rgba(74, 222, 128, 0.2)';
+                btn.style.color = '#4ade80';
+            }, 1200);
+        }
 
         async function pasteClipboard(inputId) {
             try {
