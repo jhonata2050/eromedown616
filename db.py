@@ -69,26 +69,7 @@ def init_db():
             try: cursor.execute('ALTER TABLE downloads ADD COLUMN device TEXT DEFAULT "Desktop"')
             except Exception: pass
         
-        # Configurações padrão com slug secreto e senha criptografada
-        default_settings = {
-            'admin_slug': 'painel-gestao-9021',
-            'admin_username': 'SystemAdmin',
-            'admin_password_hash': generate_password_hash('admin123'),
-            'ad_top': '',
-            'ad_bottom': '',
-            'ad_left': '',
-            'ad_right': '',
-            'ad_popunder': '',
-            'ads_enabled': '1',
-            'turnstile_enabled': '1',
-            'turnstile_site_key': '1x00000000000000000000AA',
-            'turnstile_secret_key': '1x0000000000000000000000000000000AA'
-        }
-        
-        for k, v in default_settings.items():
-            cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, v))
-            
-        # Códigos oficiais Adsterra para eromedown.org
+        # Códigos padrão Adsterra
         adsterra_popunder = '''<script src="https://pl31265096.profitableratecpmnetwork.com/6e/0f/1a/6e0f1afe4d28ef54382e19c46ef347be.js"></script>\n<script src="https://pl31265098.profitableratecpmnetwork.com/96/fe/d1/96fed15682f021cbc51e241b2d3f9ff8.js"></script>'''
         
         adsterra_banner_728 = '''<script>
@@ -113,14 +94,27 @@ def init_db():
 </script>
 <script src="https://www.highrevenueformat.com/52197188a39c413f69dcb612918d1dd3/invoke.js"></script>'''
 
-        cursor.execute("SELECT value FROM settings WHERE key = 'ad_popunder'")
-        row = cursor.fetchone()
-        if not row or not row[0] or not row[0].strip():
-            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_popunder', ?)", (adsterra_popunder,))
-            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_bottom', ?)", (adsterra_banner_728,))
-            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_left', ?)", (adsterra_banner_160,))
-            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ad_right', ?)", (adsterra_banner_160,))
-            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('ads_enabled', '1')")
+        # Verifica se já existem configurações no banco. Se já existirem, NUNCA sobrescreve dados do usuário!
+        cursor.execute("SELECT COUNT(*) FROM settings")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            # Apenas no primeiro boot limpo do banco
+            default_settings = {
+                'admin_slug': 'painel-gestao-9021',
+                'admin_username': 'SystemAdmin',
+                'admin_password_hash': generate_password_hash('admin123'),
+                'ad_top': '',
+                'ad_bottom': adsterra_banner_728,
+                'ad_left': adsterra_banner_160,
+                'ad_right': adsterra_banner_160,
+                'ad_popunder': adsterra_popunder,
+                'ads_enabled': '1',
+                'turnstile_enabled': '1',
+                'turnstile_site_key': '1x00000000000000000000AA',
+                'turnstile_secret_key': '1x0000000000000000000000000000000AA'
+            }
+            for k, v in default_settings.items():
+                cursor.execute('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', (k, v))
             
         conn.commit()
 

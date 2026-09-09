@@ -1,4 +1,4 @@
-﻿__pycache__/
+__pycache__/
 *.py[cod]
 *.class
 venv/
@@ -9,3 +9,5 @@ env/
 .idea/
 Thumbs.db
 .DS_Store
+*.db
+analytics.db
