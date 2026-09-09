@@ -5,41 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer">
     <title>Autenticação de Segurança | Core Shield</title>
-    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
     {% if turnstile_enabled %}
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     {% endif %}
+
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            background: 
-                radial-gradient(circle at 50% 20%, rgba(56, 189, 248, 0.12) 0%, transparent 50%),
-                radial-gradient(circle at 50% 80%, rgba(244, 63, 94, 0.10) 0%, transparent 50%),
-                #070a0f !important;
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(circle at 50% 15%, rgba(79, 70, 229, 0.05) 0%, transparent 60%),
+                radial-gradient(circle at 50% 85%, rgba(14, 165, 233, 0.04) 0%, transparent 60%),
+                radial-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 24px 24px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
             padding: 20px;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
         }
 
         .login-card {
-            background: rgba(18, 24, 38, 0.85);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 20px;
-            padding: 45px 35px;
+            padding: 45px 36px;
             width: 100%;
-            max-width: 420px;
+            max-width: 430px;
             text-align: center;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(56, 189, 248, 0.12);
-            animation: fadeIn 0.4s ease-out;
+            box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.08), 0 0 1px 1px rgba(0, 0, 0, 0.02);
+            animation: fadeIn 0.35s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4f46e5 0%, #818cf8 50%, #0ea5e9 100%);
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
@@ -47,9 +71,9 @@
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            background: rgba(56, 189, 248, 0.12);
-            border: 1px solid rgba(56, 189, 248, 0.35);
-            color: #38bdf8;
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #4f46e5;
             padding: 6px 16px;
             border-radius: 50px;
             font-size: 11px;
@@ -60,18 +84,19 @@
         }
 
         .login-title {
-            font-size: 24px;
+            font-size: 25px;
             font-weight: 800;
-            color: #ffffff;
+            color: #0f172a;
             margin-bottom: 8px;
             letter-spacing: -0.5px;
         }
 
         .login-subtitle {
-            color: #94a3b8;
+            color: #64748b;
             font-size: 14px;
             line-height: 1.5;
             margin-bottom: 28px;
+            font-family: 'Inter', sans-serif;
         }
 
         .password-field-wrap {
@@ -85,39 +110,34 @@
         .field-icon {
             position: absolute;
             left: 16px;
-            font-size: 17px;
-            color: #64748b;
+            font-size: 16px;
+            color: #94a3b8;
             pointer-events: none;
             z-index: 2;
         }
 
         .password-input {
             width: 100% !important;
-            padding: 16px 50px 16px 48px !important;
-            background: rgba(10, 14, 23, 0.9) !important;
-            border: 2px solid rgba(255, 255, 255, 0.15) !important;
+            padding: 15px 48px 15px 46px !important;
+            background: #f8fafc !important;
+            border: 2px solid #e2e8f0 !important;
             border-radius: 12px !important;
-            color: #ffffff !important;
-            font-size: 15px !important;
+            color: #0f172a !important;
+            font-size: 14.5px !important;
             outline: none !important;
             transition: all 0.25s ease !important;
             font-family: inherit !important;
             box-sizing: border-box !important;
         }
 
-        /* Força a cor do texto e fundo contra autocomplete branco do Chrome */
-        .password-input:-webkit-autofill,
-        .password-input:-webkit-autofill:hover, 
-        .password-input:-webkit-autofill:focus {
-            -webkit-text-fill-color: #ffffff !important;
-            -webkit-box-shadow: 0 0 0 1000px #0a0e17 inset !important;
-            transition: background-color 5000s ease-in-out 0s !important;
+        .password-input::placeholder {
+            color: #94a3b8;
         }
 
         .password-input:focus {
-            border-color: #38bdf8 !important;
-            box-shadow: 0 0 20px rgba(56, 189, 248, 0.35) !important;
-            background: #080c14 !important;
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12) !important;
+            background: #ffffff !important;
         }
 
         .toggle-btn {
@@ -138,27 +158,27 @@
         }
 
         .toggle-btn:hover {
-            color: #38bdf8;
+            color: #4f46e5;
         }
 
         .login-submit-btn {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            padding: 15px;
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
             color: white;
             border: none;
             border-radius: 12px;
             font-weight: 700;
             font-size: 15px;
             cursor: pointer;
-            box-shadow: 0 6px 20px rgba(2, 132, 199, 0.4);
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
             transition: all 0.25s ease;
             font-family: inherit;
         }
 
         .login-submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(2, 132, 199, 0.55);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(79, 70, 229, 0.45);
         }
 
         .login-submit-btn:active {
@@ -166,9 +186,9 @@
         }
 
         .error-banner {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.35);
-            color: #fca5a5;
+            background: #fef2f2;
+            border: 1px solid #fecdd3;
+            color: #b91c1c;
             padding: 14px;
             border-radius: 10px;
             font-size: 13px;
@@ -186,18 +206,14 @@
             color: #64748b;
             line-height: 1.5;
         }
-
-        .footer-note strong {
-            color: #94a3b8;
-        }
     </style>
 </head>
 <body>
     <div class="login-card">
         <span class="security-badge">🛡️ Acesso Privado Autenticado</span>
         
-        <h1 class="login-title">Painel de <span style="color: #38bdf8;">Gestão</span></h1>
-        <p class="login-subtitle">Insira a chave de acesso mestre para desbloquear os controles do site.</p>
+        <h1 class="login-title">Painel de <span style="color: #4f46e5;">Gestão</span></h1>
+        <p class="login-subtitle">Insira suas credenciais mestras para acessar os controles executivos.</p>
 
         {% if error %}
             <div class="error-banner">
@@ -222,7 +238,7 @@
 
             {% if turnstile_enabled %}
             <div style="display: flex; justify-content: center; margin: 18px 0 20px 0; min-height: 65px;">
-                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="light"></div>
             </div>
             {% endif %}
             
