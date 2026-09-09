@@ -863,6 +863,42 @@
                             <input type="password" name="new_password" placeholder="Digite uma nova senha forte..." class="text-input">
                         </div>
 
+                        <!-- Cloudflare Turnstile Settings -->
+                        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 18px; margin-top: 10px; display: flex; flex-direction: column; gap: 14px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div>
+                                    <div style="font-weight: 700; color: #38bdf8; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                                        🛡️ Cloudflare Turnstile (Anti-Robô no Login)
+                                    </div>
+                                    <small style="color: #94a3b8;">Desafio invisível e amigável que substitui o captcha tradicional</small>
+                                </div>
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #e2e8f0; font-size: 13px; font-weight: 600;">
+                                    <input type="checkbox" name="turnstile_enabled" value="1" {% if settings.turnstile_enabled == '1' or not settings.turnstile_enabled %}checked{% endif %} style="width: 18px; height: 18px; accent-color: #38bdf8; cursor: pointer;">
+                                    <span>Ativado</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <label class="input-label">
+                                    <span>Turnstile Site Key (Chave do Site)</span>
+                                    <small>Configurada no Cloudflare Turnstile</small>
+                                </label>
+                                <input type="text" name="turnstile_site_key" value="{{ settings.turnstile_site_key if settings and settings.turnstile_site_key else '1x00000000000000000000AA' }}" class="text-input" placeholder="Ex: 0x4AAAAAA...">
+                            </div>
+
+                            <div>
+                                <label class="input-label">
+                                    <span>Turnstile Secret Key (Chave Secreta)</span>
+                                    <small>Utilizada pelo servidor para autenticar a resposta</small>
+                                </label>
+                                <input type="password" name="turnstile_secret_key" value="{{ settings.turnstile_secret_key if settings and settings.turnstile_secret_key else '1x0000000000000000000000000000000AA' }}" class="text-input" placeholder="Ex: 0x4AAAAAA...">
+                            </div>
+                            
+                            <small style="color: #64748b; font-size: 12px; line-height: 1.4;">
+                                💡 <em>Nota: As chaves padrão preenchidas acima são as chaves de teste oficiais da Cloudflare ("Always Passes"). Para ativar sua própria proteção de domínio, basta gerar um widget em <strong>Cloudflare Dashboard &gt; Turnstile</strong> e colar suas chaves acima.</em>
+                            </small>
+                        </div>
+
                         <button type="submit" class="btn-primary">
                             🔒 Atualizar Credenciais de Segurança
                         </button>

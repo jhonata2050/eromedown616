@@ -6,6 +6,9 @@
     <meta name="referrer" content="no-referrer">
     <title>Autenticação de Segurança | Core Shield</title>
     <link rel="stylesheet" href="/static/style.css">
+    {% if turnstile_enabled %}
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    {% endif %}
     <style>
         body {
             background: 
@@ -216,6 +219,12 @@
                     <span id="eyeIcon">👁️</span>
                 </button>
             </div>
+
+            {% if turnstile_enabled %}
+            <div style="display: flex; justify-content: center; margin: 18px 0 20px 0; min-height: 65px;">
+                <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="dark"></div>
+            </div>
+            {% endif %}
             
             <button type="submit" class="login-submit-btn">
                 🔓 Autenticar & Entrar

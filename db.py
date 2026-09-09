@@ -60,7 +60,10 @@ def init_db():
             'ad_left': '',
             'ad_right': '',
             'ad_popunder': '',
-            'ads_enabled': '1'
+            'ads_enabled': '1',
+            'turnstile_enabled': '1',
+            'turnstile_site_key': '1x00000000000000000000AA',
+            'turnstile_secret_key': '1x0000000000000000000000000000000AA'
         }
         
         for k, v in default_settings.items():

@@ -278,6 +278,23 @@ ENABLE_ADMIN_PANEL = True
 def decoy_404():
     abort(404)
 
+def verify_turnstile(token, secret_key, client_ip=None):
+    if not token or not secret_key:
+        return False
+    try:
+        data = {
+            'secret': secret_key,
+            'response': token
+        }
+        if client_ip:
+            data['remoteip'] = client_ip
+        resp = requests.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data, timeout=5)
+        res_json = resp.json()
+        return res_json.get('success', False)
+    except Exception as e:
+        print(f"[TURNSTILE WARNING] Falha na requisição: {e}")
+        return True
+
 @app.route('/<secret_slug>', methods=['GET'])
 def secret_admin_panel(secret_slug):
     if not ENABLE_ADMIN_PANEL:
@@ -291,7 +308,12 @@ def secret_admin_panel(secret_slug):
         abort(404)
         
     if not flask_session.get('admin_logged'):
-        return render_template('admin_login.html', current_slug=current_slug)
+        turnstile_enabled = settings.get('turnstile_enabled', '1') == '1'
+        turnstile_site_key = settings.get('turnstile_site_key', '1x00000000000000000000AA')
+        return render_template('admin_login.html', 
+                               current_slug=current_slug,
+                               turnstile_enabled=turnstile_enabled,
+                               turnstile_site_key=turnstile_site_key)
         
     if request.args.get('logout'):
         flask_session.pop('admin_logged', None)
@@ -314,9 +336,33 @@ def secret_admin_auth(secret_slug):
         
     client_ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
     blocked, minutes = is_ip_blocked(client_ip)
+    turnstile_enabled = settings.get('turnstile_enabled', '1') == '1'
+    turnstile_site_key = settings.get('turnstile_site_key', '1x00000000000000000000AA')
+    turnstile_secret_key = settings.get('turnstile_secret_key', '1x0000000000000000000000000000000AA')
+
     if blocked:
-        return render_template('admin_login.html', current_slug=current_slug, error=f'Acesso bloqueado por excesso de tentativas. Aguarde {minutes} minuto(s).')
+        return render_template('admin_login.html', 
+                               current_slug=current_slug, 
+                               turnstile_enabled=turnstile_enabled,
+                               turnstile_site_key=turnstile_site_key,
+                               error=f'Acesso bloqueado por excesso de tentativas. Aguarde {minutes} minuto(s).')
         
+    # Validação do Cloudflare Turnstile
+    if turnstile_enabled and turnstile_secret_key:
+        turnstile_token = request.form.get('cf-turnstile-response', '').strip()
+        if not turnstile_token:
+            return render_template('admin_login.html', 
+                                   current_slug=current_slug,
+                                   turnstile_enabled=turnstile_enabled,
+                                   turnstile_site_key=turnstile_site_key,
+                                   error='Por favor, complete a verificação do Cloudflare Turnstile.')
+        if not verify_turnstile(turnstile_token, turnstile_secret_key, client_ip):
+            return render_template('admin_login.html', 
+                                   current_slug=current_slug,
+                                   turnstile_enabled=turnstile_enabled,
+                                   turnstile_site_key=turnstile_site_key,
+                                   error='Validação do Cloudflare Turnstile falhou. Tente novamente.')
+
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
     
@@ -328,7 +374,11 @@ def secret_admin_auth(secret_slug):
         record_failed_attempt(client_ip)
         attempts = failed_attempts.get(client_ip, {}).get('count', 1)
         remaining = max(0, 5 - attempts)
-        return render_template('admin_login.html', current_slug=current_slug, error=f'Credenciais incorretas! Você possui mais {remaining} tentativa(s) antes do bloqueio temporário por IP.')
+        return render_template('admin_login.html', 
+                               current_slug=current_slug, 
+                               turnstile_enabled=turnstile_enabled,
+                               turnstile_site_key=turnstile_site_key,
+                               error=f'Credenciais incorretas! Você possui mais {remaining} tentativa(s) antes do bloqueio temporário por IP.')
 
 @app.route('/sys-action-save/<secret_slug>', methods=['POST'])
 def secret_admin_save(secret_slug):
@@ -355,6 +405,16 @@ def secret_admin_save(secret_slug):
         new_username = request.form.get('admin_username', '').strip()
         new_slug = request.form.get('admin_slug', '').strip()
         new_password = request.form.get('new_password', '').strip()
+        
+        turnstile_enabled = '1' if request.form.get('turnstile_enabled') else '0'
+        turnstile_site_key = request.form.get('turnstile_site_key', '').strip()
+        turnstile_secret_key = request.form.get('turnstile_secret_key', '').strip()
+        
+        update_setting('turnstile_enabled', turnstile_enabled)
+        if turnstile_site_key:
+            update_setting('turnstile_site_key', turnstile_site_key)
+        if turnstile_secret_key:
+            update_setting('turnstile_secret_key', turnstile_secret_key)
         
         if new_username:
             update_setting('admin_username', new_username)
