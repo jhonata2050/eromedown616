@@ -263,24 +263,25 @@
             {% if settings and settings.ads_enabled == '1' %}
             <div class="ad-slot-wrapper" style="margin-top: 36px;">
                 <span class="sponsor-tag">Patrocinado</span>
-                <div class="ad-slot-728x90">
+                <div class="ad-slot-728x90" id="ad-slot-bottom">
                     {% if settings.ad_bottom %}
                         {{ settings.ad_bottom | safe }}
-                    {% else %}
-                        <div class="sim-ad-mini" onclick="triggerSimulatedAd(event, 'Jogo Adulto 3D Sem Instalação')">
-                            <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
-                                <img src="/static/ads/game_art.jpg" alt="Game" width="50" height="50" loading="lazy" decoding="async" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover;">
-                                <div>
-                                    <strong style="font-size: 12px; display: block; font-family: var(--font-heading);">Jogo Adulto 3D Sem Censura • No Navegador</strong>
-                                    <span style="font-size: 11px; color: var(--text-muted);">Gráficos em 4K no PC e celular. Sem download.</span>
-                                </div>
-                            </div>
-                            <button class="hero-search-btn" style="padding: 8px 16px; font-size: 11px; border-radius: 6px;">Jogar Grátis ⚔️</button>
-                        </div>
                     {% endif %}
+                    <!-- Fallback horizontal (aparece se Adsterra não renderizar nada) -->
+                    <div class="sim-ad-mini ad-fallback-horizontal" id="ad-fallback-bottom" style="display:none;" onclick="triggerSimulatedAd(event, 'Câmeras ao Vivo')">
+                        <div style="display: flex; align-items: center; gap: 14px; text-align: left;">
+                            <span style="font-size: 28px;">🔴</span>
+                            <div>
+                                <strong style="font-size: 13px; display: block; font-family: var(--font-heading);">Câmeras Privadas ao Vivo • 3.840 modelos online</strong>
+                                <span style="font-size: 11px; color: var(--text-muted);">Transmissões ao vivo em HD. Sem cadastro. Gratuito.</span>
+                            </div>
+                        </div>
+                        <button class="hero-search-btn" style="padding: 8px 20px; font-size: 11px; border-radius: 6px; white-space: nowrap;">Ver ao Vivo 💋</button>
+                    </div>
                 </div>
             </div>
             {% endif %}
+
         </section>
 
         <!-- SEÇÃO: POR QUE ESCOLHER O EROMEDOWN? (FEATURES COM SEO) -->
@@ -724,9 +725,8 @@
             toast.innerHTML = `
                 <span style="font-size: 20px;">📢</span>
                 <div>
-                    <strong style="font-size: 13px; color: var(--primary); font-family: var(--font-heading); display: block;">Anúncio (${adTitle})</strong>
-                    <p style="font-size: 11px; color: var(--text-muted); margin: 4px 0 8px 0; line-height: 1.4;">Configure banners reais no seu painel admin.</p>
-                    <a href="/{{ settings.admin_slug if settings and settings.admin_slug else 'painel-gestao-9021' }}" style="font-size: 11px; color: var(--primary); font-weight: 700; text-decoration: underline;">Painel Admin ➔</a>
+                    <strong style="font-size: 13px; color: var(--primary); font-family: var(--font-heading); display: block;">${adTitle}</strong>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 4px 0 0 0; line-height: 1.4;">Clique para saber mais.</p>
                 </div>
                 <button onclick="this.parentElement.remove()" style="background: none; border: none; color: #888; font-size: 16px; cursor: pointer; margin-left: auto;">✕</button>
             `;
@@ -734,12 +734,28 @@
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
         }
 
-        // AUTO-FALLBACK: Se a rede de anúncios demorar ou for bloqueada por DNS/ISP, preenche o espaço
+        // AUTO-FALLBACK: Se a rede de anúncios demorar ou for bloqueada, mostra placeholder
         window.addEventListener('load', function() {
             setTimeout(function() {
+                // 1) Banner horizontal: mostra fallback se Adsterra não renderizou nada visível
+                const bottomSlot = document.getElementById('ad-slot-bottom');
+                const bottomFallback = document.getElementById('ad-fallback-bottom');
+                if (bottomSlot && bottomFallback) {
+                    const hasAdContent = bottomSlot.querySelector('iframe, canvas, ins, [class*="adsterra"], [id*="ad_"]');
+                    const hasVisibleText = Array.from(bottomSlot.childNodes).some(function(n) {
+                        return n !== bottomFallback && n.offsetHeight > 10;
+                    });
+                    if (!hasAdContent && !hasVisibleText) {
+                        bottomFallback.style.display = 'flex';
+                    }
+                }
+
+                // 2) Banners laterais: injeta fallback se estiver vazio
                 document.querySelectorAll('.ad-slot-728x90').forEach(function(slot) {
-                    if (!slot.querySelector('iframe') && !slot.querySelector('a') && !slot.querySelector('.sim-ad-mini')) {
-                        const isVertical = slot.style.width === '160px' || slot.offsetHeight > 200;
+                    if (slot.id === 'ad-slot-bottom') return; // já tratado acima
+                    const hasContent = slot.querySelector('iframe, canvas, ins, .sim-ad-mini, [class*="adsterra"], [id*="ad_"]');
+                    if (!hasContent || slot.offsetHeight < 10) {
+                        const isVertical = slot.offsetWidth <= 180 || slot.offsetHeight > 200;
                         if (isVertical) {
                             slot.innerHTML = `
                                 <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
@@ -748,28 +764,16 @@
                                         <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Câmeras Privadas</h4>
                                         <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">3.840 modelos online transmitindo agora.</p>
                                     </div>
-                                    <img src="/static/ads/cam_model.jpg" alt="Model" width="144" height="260" loading="lazy" decoding="async" style="width: 100%; height: 260px; object-fit: cover; border-radius: 8px; border: 1px solid var(--card-border);">
+                                    <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #1e0a2e 0%, #3d1a6e 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 1px solid var(--card-border);">🎥</div>
                                     <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Entrar na Cam 💋</button>
-                                </div>
-                            `;
-                        } else {
-                            slot.innerHTML = `
-                                <div class="sim-ad-mini" onclick="triggerSimulatedAd(event, 'Jogo Adulto 3D Sem Instalação')">
-                                    <div style="display: flex; align-items: center; gap: 12px; text-align: left;">
-                                        <img src="/static/ads/game_art.jpg" alt="Game" width="50" height="50" loading="lazy" decoding="async" style="width: 50px; height: 50px; border-radius: 6px; object-fit: cover;">
-                                        <div>
-                                            <strong style="font-size: 12px; display: block; font-family: var(--font-heading);">Jogo Adulto 3D Sem Censura • No Navegador</strong>
-                                            <span style="font-size: 11px; color: var(--text-muted);">Gráficos em 4K no PC e celular. Sem download.</span>
-                                        </div>
-                                    </div>
-                                    <button class="hero-search-btn" style="padding: 8px 16px; font-size: 11px; border-radius: 6px;">Jogar Grátis ⚔️</button>
                                 </div>
                             `;
                         }
                     }
                 });
-            }, 3500);
+            }, 4000);
         });
+
     </script>
     <style>
         @keyframes spin {
