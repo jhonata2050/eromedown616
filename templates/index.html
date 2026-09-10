@@ -214,16 +214,6 @@
 
 
     <main>
-        <!-- Banner Topo (728x90 Leaderboard) -->
-        {% if settings and settings.ads_enabled == '1' and settings.ad_top %}
-        <div class="ad-slot-wrapper" style="margin: 20px auto 10px auto; max-width: 728px;">
-            <span class="sponsor-tag">Patrocinado</span>
-            <div class="ad-slot-728x90">
-                {{ settings.ad_top | safe }}
-            </div>
-        </div>
-        {% endif %}
-
         <!-- HERO SECTION (ESTILO EROMEDOWN.ORG COM FOCO EM CONVERSÃO E SEO) -->
         <section class="hero-section">
             <div>
