@@ -750,15 +750,19 @@ a {
     transform: translateY(-50%);
     width: 160px;
     height: 600px;
-    z-index: 40;
-    display: none;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.side-ad-left { left: 16px; }
-.side-ad-right { right: 16px; }
+.side-ad-left { left: 12px; }
+.side-ad-right { right: 12px; }
 
-@media (min-width: 1280px) {
-    .side-ad-left, .side-ad-right { display: flex; flex-direction: column; align-items: center; }
+@media (max-width: 1080px) {
+    .side-ad-left, .side-ad-right {
+        display: none !important;
+    }
 }
 
 .sim-ad-mini {
