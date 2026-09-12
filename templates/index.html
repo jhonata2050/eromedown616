@@ -707,10 +707,14 @@
             if (!input) return;
 
             const btn = document.querySelector('.hero-paste-btn');
-            const originalBtnText = btn ? btn.innerHTML : '';
+            const origText = btn ? btn.innerHTML : '';
 
-            // Estratégia 1: API Clipboard moderna (Chrome Android, Edge, Samsung Internet)
-            // Funciona silenciosamente quando acionado por clique do usuário
+            function showSuccess() {
+                if (btn) { btn.innerHTML = '✅ Colado!'; btn.style.color = '#4ade80'; }
+                setTimeout(() => { if (btn) { btn.innerHTML = origText; btn.style.color = ''; }}, 2000);
+            }
+
+            // Estratégia 1: API Clipboard moderna — Chrome Android, Edge, Samsung, Opera
             if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
                 try {
                     const text = await navigator.clipboard.readText();
@@ -718,40 +722,65 @@
                         input.value = text.trim();
                         input.focus();
                         input.dispatchEvent(new Event('input', { bubbles: true }));
-                        if (btn) {
-                            btn.innerHTML = '✅ Colado!';
-                            setTimeout(() => { btn.innerHTML = originalBtnText; }, 1500);
-                        }
+                        showSuccess();
                         return;
                     }
-                } catch (err) {
-                    // Permissão negada (iOS Safari não suporta readText) — cai na estratégia 2
-                }
+                } catch (e) { /* iOS Safari bloqueia — cai na estratégia 2 */ }
             }
 
-            // Estratégia 2: Foco + paste event sintético (funciona em alguns browsers)
-            input.focus();
+            // Estratégia 2: Input invisível + execCommand('paste')
+            // Técnica: cria um input fora da tela, foca ele, cola nele, lê o valor
+            // Funciona em iOS Safari quando acionado DIRETAMENTE por clique do usuário
+            let temp = null;
             try {
+                temp = document.createElement('input');
+                temp.type = 'text';
+                temp.value = '';
+                temp.setAttribute('autocomplete', 'off');
+                temp.style.cssText = [
+                    'position:fixed', 'left:0', 'top:0',
+                    'width:2px', 'height:2px',
+                    'opacity:0.01', 'z-index:-1',
+                    'border:none', 'outline:none',
+                    'pointer-events:none', 'font-size:16px'
+                ].join(';');
+                document.body.appendChild(temp);
+                temp.focus();
+                temp.select();
+
                 const ok = document.execCommand('paste');
-                if (ok && input.value.trim()) {
+                const pasted = temp.value;
+                document.body.removeChild(temp);
+                temp = null;
+
+                if (pasted && pasted.trim()) {
+                    input.value = pasted.trim();
+                    input.focus();
                     input.dispatchEvent(new Event('input', { bubbles: true }));
-                    if (btn) {
-                        btn.innerHTML = '✅ Colado!';
-                        setTimeout(() => { btn.innerHTML = originalBtnText; }, 1500);
-                    }
+                    showSuccess();
                     return;
                 }
-            } catch (e) {}
-
-            // Estratégia 3: Fallback visual — foca o campo e mostra instrução discreta no botão
-            // (iOS Safari não permite acesso ao clipboard sem interação nativa)
-            input.focus();
-            if (btn) {
-                btn.innerHTML = '👆 Segure o campo';
-                setTimeout(() => { btn.innerHTML = originalBtnText; }, 2500);
+            } catch (e) {
+                if (temp && temp.parentNode) document.body.removeChild(temp);
             }
-            // Tenta selecionar tudo no campo para facilitar substituição manual
-            try { input.select(); input.setSelectionRange(0, 99999); } catch(e) {}
+
+            // Estratégia 3: Foca o campo real e aciona paste nele diretamente
+            input.focus();
+            input.select();
+            try {
+                const ok2 = document.execCommand('paste');
+                if (ok2 && input.value.trim()) {
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    showSuccess();
+                    return;
+                }
+            } catch(e) {}
+
+            // Fallback final: campo focado e selecionado, usuário só precisa confirmar "Colar"
+            if (btn) {
+                btn.innerHTML = '📋 Colar agora';
+                setTimeout(() => { btn.innerHTML = origText; }, 2500);
+            }
         }
 
         // DOWNLOAD EM LOTE OTIMIZADO PARA DESKTOP E MOBILE
