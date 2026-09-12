@@ -259,24 +259,24 @@
             <!-- CONTAINER DE RESULTADOS DE VÍDEOS -->
             <div id="results"></div>
 
-            <!-- Banner Publicitário Abaixo da Busca (Leaderboard 728x90) -->
+            <!-- Banner Publicitário Abaixo da Busca (Leaderboard 728x90 Desktop / 320x100 Mobile) -->
             {% if settings and settings.ads_enabled == '1' %}
-            <div class="ad-slot-wrapper" style="margin-top: 36px;">
+            <div class="ad-slot-wrapper" style="margin-top: 30px;">
                 <span class="sponsor-tag">Patrocinado</span>
                 <div class="ad-slot-728x90" id="ad-slot-bottom">
                     {% if settings.ad_bottom %}
                         {{ settings.ad_bottom | safe }}
                     {% endif %}
-                    <!-- Fallback horizontal (aparece se Adsterra não renderizar nada) -->
-                    <div class="sim-ad-mini ad-fallback-horizontal" id="ad-fallback-bottom" style="display:none;" onclick="triggerSimulatedAd(event, 'Câmeras ao Vivo')">
-                        <div style="display: flex; align-items: center; gap: 14px; text-align: left;">
-                            <span style="font-size: 28px;">🔴</span>
-                            <div>
-                                <strong style="font-size: 13px; display: block; font-family: var(--font-heading);">Câmeras Privadas ao Vivo • 3.840 modelos online</strong>
-                                <span style="font-size: 11px; color: var(--text-muted);">Transmissões ao vivo em HD. Sem cadastro. Gratuito.</span>
+                    <!-- Fallback (aparece se Adsterra não renderizar nada visível) -->
+                    <div class="sim-ad-mini" id="ad-fallback-bottom" style="display:none; width:100%;" onclick="triggerSimulatedAd(event, 'Câmeras ao Vivo')">
+                        <div style="display: flex; align-items: center; gap: 12px; text-align: left; flex: 1; min-width: 0;">
+                            <span style="font-size: 24px; flex-shrink:0;">🔴</span>
+                            <div style="min-width:0;">
+                                <strong style="font-size: 12px; display: block; font-family: var(--font-heading); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Câmeras Privadas ao Vivo • 3.840 modelos online</strong>
+                                <span style="font-size: 10px; color: var(--text-muted);">Transmissões HD. Sem cadastro. Gratuito.</span>
                             </div>
                         </div>
-                        <button class="hero-search-btn" style="padding: 8px 20px; font-size: 11px; border-radius: 6px; white-space: nowrap;">Ver ao Vivo 💋</button>
+                        <button class="hero-search-btn" style="padding: 8px 14px; font-size: 11px; border-radius: 6px; white-space: nowrap; flex-shrink:0;">Ver 💋</button>
                     </div>
                 </div>
             </div>
@@ -607,18 +607,53 @@
         });
 
         async function pasteClipboard(inputId) {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    const input = document.getElementById(inputId);
-                    if (input) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            // Estratégia 1: API Clipboard moderna (Chrome, Edge, Android Chrome)
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (text && text.trim()) {
                         input.value = text.trim();
                         input.focus();
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        return;
                     }
+                } catch (err) {
+                    // Permissão negada ou não suportado — tenta próxima estratégia
                 }
-            } catch (err) {
-                console.log('Clipboard error:', err);
             }
+
+            // Estratégia 2: execCommand('paste') — Firefox, Opera, browsers mais antigos
+            try {
+                input.focus();
+                const ok = document.execCommand('paste');
+                if (ok && input.value.trim()) {
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    return;
+                }
+            } catch (e) {}
+
+            // Estratégia 3: Foco no campo + instrução ao usuário (Safari iOS, navegadores restritos)
+            input.focus();
+            input.select();
+            // Mostra dica temporária no placeholder
+            const originalPlaceholder = input.placeholder;
+            input.placeholder = '👆 Pressione e segure para colar...';
+            setTimeout(() => {
+                if (!input.value) input.placeholder = originalPlaceholder;
+            }, 3000);
+
+            // Tenta também via prompt como último recurso (Firefox Android)
+            try {
+                const clipped = prompt('Cole o link do Erome aqui:');
+                if (clipped && clipped.trim()) {
+                    input.value = clipped.trim();
+                    input.focus();
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            } catch(e) {}
         }
 
         // DOWNLOAD EM LOTE OTIMIZADO PARA DESKTOP E MOBILE
