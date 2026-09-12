@@ -130,6 +130,44 @@ body, html {{ margin:0; padding:0; overflow:hidden; background:transparent; disp
 </html>"""
     return Response(html, mimetype='text/html')
 
+@app.route('/sitemap.xml')
+def sitemap():
+    from datetime import date
+    today = date.today().isoformat()
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://eromedown.org/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://eromedown.org/?lang=pt"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://eromedown.org/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://eromedown.org/?lang=es"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://eromedown.org/?lang=fr"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://eromedown.org/?lang=ru"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://eromedown.org/"/>
+  </url>
+</urlset>"""
+    return Response(xml, mimetype='application/xml',
+                    headers={'Cache-Control': 'public, max-age=86400'})
+
+@app.route('/robots.txt')
+def robots():
+    txt = """User-agent: *
+Allow: /
+Disallow: /get_video
+Disallow: /get_videos
+Disallow: /proxy_download
+Disallow: /get_social_video
+Disallow: /ad_slot/
+
+Sitemap: https://eromedown.org/sitemap.xml
+"""
+    return Response(txt, mimetype='text/plain',
+                    headers={'Cache-Control': 'public, max-age=86400'})
+
 @app.after_request
 def add_no_cache_headers(response):
     # Força os navegadores móveis e Cloudflare a não manterem cache de páginas HTML
