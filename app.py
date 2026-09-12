@@ -115,8 +115,14 @@ def get_social_video():
     return jsonify({'error': 'Downloader de redes sociais desativado. Use o EromeDown para baixar vídeos do Erome.'})
 
 @app.route('/favicon.ico')
+@app.route('/favicon.png')
 def favicon():
-    return ('', 204)
+    from flask import send_from_directory
+    return send_from_directory(
+        app.static_folder, 'favicon.png',
+        mimetype='image/png',
+        max_age=86400
+    )
 
 @app.route('/manifest.json')
 def manifest():

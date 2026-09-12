@@ -11,7 +11,12 @@
     <meta name="keywords" content="erome downloader, erome video downloader, download erome, erome download, baixar erome, baixar video erome, baixar erome gratis, como baixar do erome, como baixar video do erome, baixar album erome, erome downloader online, erome download gratis, erome video download, erome album downloader, erome.com downloader, download from erome, erome saver, erome grabber, erome mp4 download, erome photo download, erome image downloader, erome full hd download, erome 1080p, salvar video erome, save erome video, erome link download, baixar erome pelo link, erome downloader sem cadastro, erome download sem login, erome download rapido, melhor downloader erome, site para baixar erome, programa para baixar erome, extensao erome download, chrome erome downloader, baixar erome android, baixar erome iphone, baixar erome celular, baixar erome pc, erome album download, erome batch download, baixar album completo erome, erome fotos download, erome video hd, erome 4k download, descargar erome, descargar videos erome, descargar albumes erome, descargar erome gratis, como descargar de erome, erome descargador, télécharger erome, télécharger vidéo erome, télécharger album erome, télécharger erome gratuit, скачать erome, скачать видео erome, скачать альбом erome, erome herunterladen, erome video herunterladen, scarica video erome, scaricare erome, eromedown, eromedown.org, erome down, erdown, eromedownload, eromedia, erome downloader site, erome online downloader, erome free downloader, erome fast downloader, erome video saver, erome bulk downloader, erome scraper, erome ripper">
     
     <link rel="canonical" href="https://eromedown.org/">
-    
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <link rel="shortcut icon" type="image/png" href="/static/favicon.png">
+    <link rel="apple-touch-icon" href="/static/favicon.png">
+
     <!-- HREFLANG MULTILÍNGUE PARA RANQUEAMENTO GLOBAL NO GOOGLE (EUA, BRASIL, ESPANHA, FRANÇA, RÚSSIA) -->
     <link rel="alternate" hreflang="x-default" href="https://eromedown.org/">
     <link rel="alternate" hreflang="pt" href="https://eromedown.org/?lang=pt">
@@ -247,7 +252,7 @@
                                 <path d="M2 12h20"></path>
                             </svg>
                         </div>
-                        <input type="url" id="url" name="url" class="hero-input-field" placeholder="Cole o link https://www.erome.com/a/... ou digite para buscar" data-i18n-placeholder="search_placeholder" required autocomplete="off" autocapitalize="none" spellcheck="false">
+                        <input type="text" id="url" name="url" class="hero-input-field" placeholder="Cole o link erome.com/a/... ou https://www.erome.com/a/..." data-i18n-placeholder="search_placeholder" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url">
                         <button type="button" class="hero-paste-btn" onclick="pasteClipboard('url')" data-i18n="paste_btn" aria-label="Colar link">
                             📋 Colar
                         </button>
@@ -505,7 +510,24 @@
             const urlInput = document.getElementById('url');
             const url = urlInput.value.trim();
 
-            if (!url) return;
+            if (!url) {
+                urlInput.focus();
+                urlInput.placeholder = '⚠️ Cole o link do Erome aqui primeiro!';
+                setTimeout(() => { urlInput.placeholder = 'Cole o link erome.com/a/... ou https://www.erome.com/a/...'; }, 3000);
+                return;
+            }
+
+            // Aceita com ou sem https://
+            const normalizedUrl = url.includes('://') ? url : 'https://' + url;
+            if (!normalizedUrl.includes('erome.com')) {
+                resultsDiv.innerHTML = `
+                    <div class="card-glow" style="padding: 20px; border-color: #ef4444; text-align: center;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
+                        <div style="color: #fca5a5; font-weight: 700; font-size: 14px; margin-bottom: 4px;">Link inválido</div>
+                        <div style="color: var(--text-muted); font-size: 12px;">Cole um link do Erome. Ex: erome.com/a/XXXXXXXX</div>
+                    </div>`;
+                return;
+            }
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<span style="display: inline-block; animation: spin 1s linear infinite;">⏳</span> <span>${t('connecting_btn')}</span>`;
