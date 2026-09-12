@@ -706,50 +706,52 @@
             const input = document.getElementById(inputId);
             if (!input) return;
 
-            // Estratégia 1: API Clipboard moderna (Chrome, Edge, Android Chrome)
-            if (navigator.clipboard && navigator.clipboard.readText) {
+            const btn = document.querySelector('.hero-paste-btn');
+            const originalBtnText = btn ? btn.innerHTML : '';
+
+            // Estratégia 1: API Clipboard moderna (Chrome Android, Edge, Samsung Internet)
+            // Funciona silenciosamente quando acionado por clique do usuário
+            if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
                 try {
                     const text = await navigator.clipboard.readText();
                     if (text && text.trim()) {
                         input.value = text.trim();
                         input.focus();
                         input.dispatchEvent(new Event('input', { bubbles: true }));
+                        if (btn) {
+                            btn.innerHTML = '✅ Colado!';
+                            setTimeout(() => { btn.innerHTML = originalBtnText; }, 1500);
+                        }
                         return;
                     }
                 } catch (err) {
-                    // Permissão negada ou não suportado — tenta próxima estratégia
+                    // Permissão negada (iOS Safari não suporta readText) — cai na estratégia 2
                 }
             }
 
-            // Estratégia 2: execCommand('paste') — Firefox, Opera, browsers mais antigos
+            // Estratégia 2: Foco + paste event sintético (funciona em alguns browsers)
+            input.focus();
             try {
-                input.focus();
                 const ok = document.execCommand('paste');
                 if (ok && input.value.trim()) {
                     input.dispatchEvent(new Event('input', { bubbles: true }));
+                    if (btn) {
+                        btn.innerHTML = '✅ Colado!';
+                        setTimeout(() => { btn.innerHTML = originalBtnText; }, 1500);
+                    }
                     return;
                 }
             } catch (e) {}
 
-            // Estratégia 3: Foco no campo + instrução ao usuário (Safari iOS, navegadores restritos)
+            // Estratégia 3: Fallback visual — foca o campo e mostra instrução discreta no botão
+            // (iOS Safari não permite acesso ao clipboard sem interação nativa)
             input.focus();
-            input.select();
-            // Mostra dica temporária no placeholder
-            const originalPlaceholder = input.placeholder;
-            input.placeholder = '👆 Pressione e segure para colar...';
-            setTimeout(() => {
-                if (!input.value) input.placeholder = originalPlaceholder;
-            }, 3000);
-
-            // Tenta também via prompt como último recurso (Firefox Android)
-            try {
-                const clipped = prompt('Cole o link do Erome aqui:');
-                if (clipped && clipped.trim()) {
-                    input.value = clipped.trim();
-                    input.focus();
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-            } catch(e) {}
+            if (btn) {
+                btn.innerHTML = '👆 Segure o campo';
+                setTimeout(() => { btn.innerHTML = originalBtnText; }, 2500);
+            }
+            // Tenta selecionar tudo no campo para facilitar substituição manual
+            try { input.select(); input.setSelectionRange(0, 99999); } catch(e) {}
         }
 
         // DOWNLOAD EM LOTE OTIMIZADO PARA DESKTOP E MOBILE
