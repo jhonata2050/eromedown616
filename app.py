@@ -58,13 +58,45 @@ def get_client_country():
         return 'BR'
     return 'BR'
 
+# Assinaturas de User-Agent de bots/crawlers/scanners conhecidos
+BOT_UA_SIGNATURES = [
+    # Crawlers e bots de busca
+    'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider', 'yandexbot',
+    'sogou', 'exabot', 'facebot', 'ia_archiver', 'ahrefsbot', 'semrushbot',
+    'dotbot', 'mj12bot', 'rogerbot', 'linkdexbot', 'blexbot', 'proximic',
+    'sistrix', 'searchatlas', 'seobilitybot', 'rankactivelinkbot',
+    # Scanners de segurança e pentest
+    'nmap', 'nikto', 'sqlmap', 'masscan', 'zap/', 'burpsuite', 'nessus',
+    'openvas', 'acunetix', 'w3af', 'nuclei', 'zgrab', 'go-http-client',
+    'python-requests', 'python-urllib', 'libwww-perl', 'curl/', 'wget/',
+    'httpx', 'httpclient', 'okhttp', 'java/', 'axios/',
+    # Ferramentas de scraping/automação
+    'scrapy', 'mechanize', 'phantomjs', 'selenium', 'puppeteer', 'playwright',
+    'headlesschrome', 'headless', 'prerender', 'crawl', 'spider', 'bot/',
+    'robot', 'fetcher', 'archiver', 'downloader', 'extractor', 'parser',
+    # Monitoramento e uptime
+    'uptimerobot', 'pingdom', 'statuscake', 'site24x7', 'freshping',
+    'hetrixtools', 'monitor', 'checker',
+    # Outros
+    'dataforseo', 'bytespider', 'claude-web', 'gpt-', 'openai', 'anthropic',
+]
+
+def is_bot(ua_string):
+    """Detecta bots/crawlers pelo User-Agent. Retorna True se for bot."""
+    if not ua_string or len(ua_string) < 10:
+        return True  # UA vazio ou muito curto = bot/script
+    ua_lower = ua_string.lower()
+    return any(sig in ua_lower for sig in BOT_UA_SIGNATURES)
+
 @app.before_request
 def track_visitor():
-    # Registrar visita nas páginas principais
+    # Registrar visita nas páginas principais (ignora bots)
     if request.path in ('/', '/social') and request.method == 'GET':
+        ua = request.headers.get('User-Agent', '')
+        if is_bot(ua):
+            return  # Não registra bots no analytics
         ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
         country = get_client_country()
-        ua = request.headers.get('User-Agent', '')
         device, os_name, browser = parse_device_info(ua)
         city = request.headers.get('CF-IPCity', '')
         log_visit(ip, country, request.path, device=device, os_name=os_name, browser=browser, city=city)
