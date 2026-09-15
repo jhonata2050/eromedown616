@@ -207,12 +207,13 @@ Sitemap: https://eromedown.org/sitemap.xml
                     headers={'Cache-Control': 'public, max-age=86400'})
 
 @app.after_request
-def add_no_cache_headers(response):
-    # Força os navegadores móveis e Cloudflare a não manterem cache de páginas HTML
-    if 'text/html' in response.headers.get('Content-Type', ''):
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+def add_cache_headers(response):
+    content_type = response.headers.get('Content-Type', '')
+    if 'text/html' in content_type:
+        # Permite Cloudflare cachear por 5 min (CDN), browser revalida a cada visita
+        # Isso elimina o custo de Flask+SQLite em cada requisição repetida
+        response.headers['Cache-Control'] = 'public, s-maxage=300, max-age=0, must-revalidate'
+        response.headers['Vary'] = 'Accept-Encoding'
     return response
 
 @app.route('/get_video', methods=['POST'])
