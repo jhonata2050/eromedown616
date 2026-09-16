@@ -1,4 +1,5 @@
 import gzip
+import threading
 from flask import Flask, request, jsonify, render_template, session as flask_session, redirect, url_for, Response, stream_with_context, abort
 import socket
 import urllib.parse
@@ -20,6 +21,29 @@ app.secret_key = 'erome-secure-session-key-9021-x8k3'
 
 # Inicializar banco de dados de analytics e configurações
 init_db()
+
+# --- CACHE DE SETTINGS EM MEMÓRIA (evita SQLite em cada request) ---
+_settings_cache = {'data': None, 'ts': 0}
+_SETTINGS_TTL = 60  # segundos
+
+def get_cached_settings():
+    now = time.time()
+    if _settings_cache['data'] is None or (now - _settings_cache['ts']) > _SETTINGS_TTL:
+        _settings_cache['data'] = get_settings()
+        _settings_cache['ts'] = now
+    return _settings_cache['data']
+
+def invalidate_settings_cache():
+    _settings_cache['data'] = None
+
+# --- LOG ASSÍNCRONO (não bloqueia render da página) ---
+def log_visit_async(ip, country, path, **kwargs):
+    def _log():
+        try:
+            log_visit(ip, country, path, **kwargs)
+        except Exception:
+            pass
+    threading.Thread(target=_log, daemon=True).start()
 
 # Sessão persistente com pool de conexões
 session = requests.Session()
@@ -90,20 +114,20 @@ def is_bot(ua_string):
 
 @app.before_request
 def track_visitor():
-    # Registrar visita nas páginas principais (ignora bots)
+    # Registrar visita nas páginas principais (ignora bots, não bloqueia render)
     if request.path in ('/', '/social') and request.method == 'GET':
         ua = request.headers.get('User-Agent', '')
         if is_bot(ua):
-            return  # Não registra bots no analytics
+            return
         ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
         country = get_client_country()
         device, os_name, browser = parse_device_info(ua)
         city = request.headers.get('CF-IPCity', '')
-        log_visit(ip, country, request.path, device=device, os_name=os_name, browser=browser, city=city)
+        log_visit_async(ip, country, request.path, device=device, os_name=os_name, browser=browser, city=city)
 
 @app.route('/')
 def index():
-    settings = get_settings()
+    settings = get_cached_settings()  # Cache 60s — sem SQLite em cada request
     return render_template('index.html', settings=settings)
 
 @app.route('/social')
@@ -338,20 +362,25 @@ def proxy_download():
             return f"Erro no servidor de mídia: status {req.status_code}", req.status_code
         
         # Sanitização robusta do nome do arquivo
-        clean_name = re.sub(r'[\/*?:"<>|\r\n\t]', "", (filename or title or 'video')).strip()
+        clean_name = re.sub(r'[\\/*?:"<>|\r\n\t]', "", (filename or title or 'video')).strip()
         if not clean_name:
             clean_name = 'video'
-            
+
+        # Prefixo de marca no nome do arquivo
+        BRAND_PREFIX = 'eromedown.org - '
+        if not clean_name.startswith(BRAND_PREFIX):
+            clean_name = BRAND_PREFIX + clean_name
+
         if not clean_name.lower().endswith(f'.{ext}'):
             download_filename = f"{clean_name}.{ext}"
         else:
             download_filename = clean_name
-            
+
         # Fallback ASCII estrito para navegadores móveis (Safari iOS / Android)
         ascii_fallback = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', download_filename)
         if not ascii_fallback.lower().endswith(f'.{ext}'):
             ascii_fallback = f"{ascii_fallback}.{ext}"
-            
+
         encoded_filename = urllib.parse.quote(download_filename)
         
         # application/octet-stream garante download direto no iOS Safari e Android Chrome sem tocar player inline
@@ -530,6 +559,7 @@ def secret_admin_save(secret_slug):
             
         ads_enabled = '1' if request.form.get('ads_enabled') else '0'
         update_setting('ads_enabled', ads_enabled)
+        invalidate_settings_cache()
         return redirect(f'/{current_slug}?msg=Anúncios atualizados com sucesso!')
         
     elif section == 'security':
