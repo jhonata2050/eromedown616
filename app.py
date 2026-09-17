@@ -10,6 +10,7 @@ import urllib3
 import urllib3.util.connection as urllib3_cn
 from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, parse_device_info, resolve_country
 from social_downloader import process_social_url
+from multi_downloader import extract as multi_extract, detect_site
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -245,13 +246,37 @@ def add_cache_headers(response):
 def get_video():
     url = request.form.get('url', '').strip()
     if not url:
-        return jsonify({'error': 'Por favor, insira um link válido do erome.com'})
+        return jsonify({'error': 'Por favor, insira um link válido.'})
 
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
 
+    # ── Detectar site e redirecionar ──────────────────────────────
+    site = detect_site(url)
+    if site in ('xvideos', 'pornhub'):
+        try:
+            result = multi_extract(url)
+            # Formatar vídeos no mesmo padrão do Erome
+            videos_out = []
+            for v in result.get('videos', []):
+                safe_url   = urllib.parse.quote(v['url'])
+                safe_title = urllib.parse.quote(v['title'])
+                safe_fname = urllib.parse.quote(v['filename'])
+                videos_out.append({
+                    'title':     v['title'],
+                    'filename':  v['filename'],
+                    'raw_url':   v['url'],
+                    'type':      v.get('type', 'video'),
+                    'quality':   v.get('quality', ''),
+                    'thumbnail': v.get('thumbnail', ''),
+                    'url': f'/proxy_download?url={safe_url}&title={safe_title}&filename={safe_fname}&page_url={urllib.parse.quote(url)}',
+                })
+            return jsonify({'success': True, 'title': result['title'], 'videos': videos_out})
+        except Exception as e:
+            return jsonify({'error': str(e)})
+
     if 'erome.com' not in url:
-        return jsonify({'error': 'Por favor, insira um link válido do erome.com'})
+        return jsonify({'error': 'Site não suportado. Cole um link do Erome, XVideos ou PornHub.'})
 
     try:
         headers = {
