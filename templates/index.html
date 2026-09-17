@@ -448,38 +448,43 @@
         </section>
     </main>
 
-    <!-- Banners Laterais Skyscraper (160x600 Desktop Fixo - Carregamento Não-Bloqueante) -->
+    <!-- Banners Laterais Skyscraper (160x600 Desktop Fixo) -->
     {% if settings and settings.ads_enabled == '1' %}
     <aside class="side-ad-left">
         <span class="sponsor-tag">Patrocinado</span>
-        <div class="ad-slot-728x90" id="ad-slot-left" style="width: 160px; height: 600px;"
-             {% if settings.ad_left %}data-ad="{{ settings.ad_left | e }}"{% endif %}>
-            <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
-                <div>
-                    <span style="font-size: 8.5px; font-weight: 700; color: #f87171; background: rgba(239,68,68,0.15); padding: 2px 6px; border-radius: 4px;">● AO VIVO</span>
-                    <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Câmeras Privadas</h4>
-                    <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">3.840 modelos online transmitindo agora.</p>
+        <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
+            {% if settings.ad_left %}
+                {{ settings.ad_left | safe }}
+            {% else %}
+                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between; height: 100%;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
+                    <div>
+                        <span style="font-size: 8.5px; font-weight: 700; color: #f87171; background: rgba(239,68,68,0.15); padding: 2px 6px; border-radius: 4px;">● AO VIVO</span>
+                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Câmeras Privadas</h4>
+                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">3.840 modelos online transmitindo agora.</p>
+                    </div>
+                    <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #1e0a2e 0%, #3d1a6e 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 1px solid var(--card-border);">🎥</div>
+                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Entrar na Cam 💋</button>
                 </div>
-                <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #1e0a2e 0%, #3d1a6e 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 1px solid var(--card-border);">🎥</div>
-                <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Entrar na Cam 💋</button>
-            </div>
+            {% endif %}
         </div>
     </aside>
 
     <aside class="side-ad-right">
-        <span class="sponsor-tag" style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#666;display:block;margin-bottom:4px;text-align:center;">Patrocinado</span>
-        <div id="ad-slot-right" style="width:160px;min-height:580px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;"
-             {% if settings.ad_right %}data-ad="{{ settings.ad_right | e }}"{% endif %}>
-            <div id="sim-ad-right" onclick="triggerSimulatedAd(event,'Encontros Locais')"
-                 style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 10px;justify-content:space-between;min-height:560px;cursor:pointer;gap:10px;">
-                <div>
-                    <span style="font-size:9px;font-weight:700;color:#4ade80;background:rgba(74,222,128,0.15);padding:3px 8px;border-radius:99px;">📍 1.2km de você</span>
-                    <div style="font-size:13px;font-weight:700;margin-top:10px;color:#f0e6ff;font-family:sans-serif;">Solteiras Online</div>
-                    <div style="font-size:11px;color:#8b7a9a;margin-top:4px;line-height:1.4;">Querem conversar agora</div>
+        <span class="sponsor-tag">Patrocinado</span>
+        <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
+            {% if settings.ad_right %}
+                {{ settings.ad_right | safe }}
+            {% else %}
+                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between; height: 100%;" onclick="triggerSimulatedAd(event, 'Encontros Locais Discretos')">
+                    <div>
+                        <span style="font-size: 8.5px; font-weight: 700; color: #4ade80; background: rgba(74,222,128,0.15); padding: 2px 6px; border-radius: 4px;">📍 1.2 km de você</span>
+                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Solteiras Online</h4>
+                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">A fim de sair e conversar agora.</p>
+                    </div>
+                    <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #0a1e2e 0%, #1a3d6e 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 1px solid var(--card-border);">💬</div>
+                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Ver Perfil 💬</button>
                 </div>
-                <div style="width:100%;height:160px;background:linear-gradient(135deg,#0a1e2e,#1a3d6e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:42px;border:1px solid rgba(255,255,255,0.08);">💬</div>
-                <button style="width:100%;padding:10px;border-radius:8px;background:linear-gradient(135deg,#e91e8c,#c800ff);color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;">Ver Perfil 💬</button>
-            </div>
+            {% endif %}
         </div>
     </aside>
     {% endif %}
@@ -939,7 +944,6 @@
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
         }
 
-        <script>
         // AUTO-FALLBACK: Se a rede de anúncios demorar ou for bloqueada por AdBlock, mostra placeholder
         window.addEventListener('load', function() {
             setTimeout(function() {
