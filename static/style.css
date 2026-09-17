@@ -1193,3 +1193,5 @@ a {
         font-size: 0.88rem;
     }
 }
+
+@keyframes spin { to { transform: rotate(360deg); } }

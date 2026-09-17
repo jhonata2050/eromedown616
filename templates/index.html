@@ -316,8 +316,10 @@
                 <span class="sponsor-tag">Patrocinado</span>
                 <div class="ad-slot-728x90" id="ad-slot-bottom"
                      {% if settings.ad_bottom %}data-ad="{{ settings.ad_bottom | e }}"{% endif %}>
-                    <!-- Fallback (aparece se Adsterra não renderizar nada visível) -->
-                    <div class="sim-ad-mini" id="ad-fallback-bottom" style="display:flex; width:100%;" onclick="triggerSimulatedAd(event, 'Câmeras ao Vivo')">
+                    <!-- Fallback -->
+                    <div class="sim-ad-mini" id="ad-fallback-bottom"
+                         style="{% if settings.ad_bottom %}display:none;{% else %}display:flex;{% endif %} width:100%; height:100%; align-items:center; justify-content:space-between; padding:12px 20px; box-sizing:border-box;"
+                         onclick="triggerSimulatedAd(event, 'Câmeras ao Vivo')">
                         <div style="display: flex; align-items: center; gap: 12px; text-align: left; flex: 1; min-width: 0;">
                             <span style="font-size: 24px; flex-shrink:0;">🔴</span>
                             <div style="min-width:0;">
@@ -465,17 +467,18 @@
     </aside>
 
     <aside class="side-ad-right">
-        <span class="sponsor-tag">Patrocinado</span>
-        <div class="ad-slot-728x90" id="ad-slot-right" style="width: 160px; height: 600px;"
+        <span class="sponsor-tag" style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#666;display:block;margin-bottom:4px;text-align:center;">Patrocinado</span>
+        <div id="ad-slot-right" style="width:160px;min-height:580px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;"
              {% if settings.ad_right %}data-ad="{{ settings.ad_right | e }}"{% endif %}>
-            <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Encontros Locais Discretos')">
+            <div id="sim-ad-right" onclick="triggerSimulatedAd(event,'Encontros Locais')"
+                 style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:16px 10px;justify-content:space-between;min-height:560px;cursor:pointer;gap:10px;">
                 <div>
-                    <span style="font-size: 8.5px; font-weight: 700; color: #4ade80; background: rgba(74,222,128,0.15); padding: 2px 6px; border-radius: 4px;">📍 1.2 km de você</span>
-                    <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Solteiras Online</h4>
-                    <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">A fim de sair e conversar agora.</p>
+                    <span style="font-size:9px;font-weight:700;color:#4ade80;background:rgba(74,222,128,0.15);padding:3px 8px;border-radius:99px;">📍 1.2km de você</span>
+                    <div style="font-size:13px;font-weight:700;margin-top:10px;color:#f0e6ff;font-family:sans-serif;">Solteiras Online</div>
+                    <div style="font-size:11px;color:#8b7a9a;margin-top:4px;line-height:1.4;">Querem conversar agora</div>
                 </div>
-                <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #0a1e2e 0%, #1a3d6e 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 1px solid var(--card-border);">💬</div>
-                <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Ver Perfil 💬</button>
+                <div style="width:100%;height:160px;background:linear-gradient(135deg,#0a1e2e,#1a3d6e);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:42px;border:1px solid rgba(255,255,255,0.08);">💬</div>
+                <button style="width:100%;padding:10px;border-radius:8px;background:linear-gradient(135deg,#e91e8c,#c800ff);color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;">Ver Perfil 💬</button>
             </div>
         </div>
     </aside>
@@ -936,116 +939,107 @@
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
         }
 
-        // AUTO-FALLBACK: Se a rede de anúncios demorar ou for bloqueada, mostra placeholder
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                // 1) Banner horizontal: mostra fallback se Adsterra não renderizou nada visível
-                const bottomSlot = document.getElementById('ad-slot-bottom');
-                const bottomFallback = document.getElementById('ad-fallback-bottom');
-                if (bottomSlot && bottomFallback) {
-                    const hasAdContent = bottomSlot.querySelector('iframe, canvas, ins, [class*="adsterra"], [id*="ad_"]');
-                    const hasVisibleText = Array.from(bottomSlot.childNodes).some(function(n) {
-                        return n !== bottomFallback && n.offsetHeight > 10;
-                    });
-                    if (!hasAdContent && !hasVisibleText) {
-                        bottomFallback.style.display = 'flex';
-                    }
-                }
-
-                // 2) Banners laterais: injeta fallback se estiver vazio
-                document.querySelectorAll('.ad-slot-728x90').forEach(function(slot) {
-                    if (slot.id === 'ad-slot-bottom') return; // já tratado acima
-                    const hasContent = slot.querySelector('iframe, canvas, ins, .sim-ad-mini, [class*="adsterra"], [id*="ad_"]');
-                    if (!hasContent || slot.offsetHeight < 10) {
-                        const isVertical = slot.offsetWidth <= 180 || slot.offsetHeight > 200;
-                        if (isVertical) {
-                            slot.innerHTML = `
-                                <div class="sim-ad-mini" style="flex-direction: column; text-align: center; padding: 16px 8px; justify-content: space-between;" onclick="triggerSimulatedAd(event, 'Câmeras Privadas ao Vivo')">
-                                    <div>
-                                        <span style="font-size: 8.5px; font-weight: 700; color: #f87171; background: rgba(239,68,68,0.15); padding: 2px 6px; border-radius: 4px;">● AO VIVO</span>
-                                        <h4 style="font-size: 13px; font-weight: 700; margin-top: 10px; font-family: var(--font-heading);">Câmeras Privadas</h4>
-                                        <p style="font-size: 10px; color: var(--text-muted); margin-top: 6px;">3.840 modelos online transmitindo agora.</p>
-                                    </div>
-                                    <div style="width: 100%; height: 200px; background: linear-gradient(135deg, #1e0a2e 0%, #3d1a6e 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 48px; border: 1px solid var(--card-border);">🎥</div>
-                                    <button class="hero-search-btn" style="width: 100%; padding: 10px; border-radius: 6px; font-size: 11px;">Entrar na Cam 💋</button>
-                                </div>
-                            `;
-                        }
-                    }
-                });
-            }, 4000);
-        });
-
-    </script>
-    <style>
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-
-    <!-- CARREGAMENTO ASSÍNCRONO DE ANÚNCIOS (após window.load — não bloqueia a página) -->
+        <!-- CARREGAMENTO ASSÍNCRONO E ISOLADO DE ANÚNCIOS (SEM COLISÃO DE ESCOPO GLOBAL) -->
     <script>
     (function() {
-        function injectAdScript(html, container) {
-            if (!html || !container) return;
-            // Parse e injeta scripts de forma segura
-            var temp = document.createElement('div');
-            temp.innerHTML = html;
-            // Move nodes para o container
-            while (temp.firstChild) {
-                var node = temp.firstChild;
-                temp.removeChild(node);
-                if (node.tagName === 'SCRIPT') {
-                    // Scripts precisam ser recriados para executar
-                    var s = document.createElement('script');
-                    if (node.src) {
-                        s.src = node.src;
-                        s.async = true;
-                    } else {
-                        s.textContent = node.textContent;
+        function loadAdSlot(slotId, width, height, fallbackId) {
+            var slot = document.getElementById(slotId);
+            if (!slot) return;
+            var adHtml = slot.getAttribute('data-ad');
+            var fallback = fallbackId ? document.getElementById(fallbackId) : slot.querySelector('.sim-ad-mini');
+
+            if (!adHtml || !adHtml.trim()) {
+                if (fallback) fallback.style.display = 'flex';
+                return;
+            }
+
+            // Cada banner roda dentro de um iframe independente, garantindo que
+            // window.atOptions de um slot NÃO sobrescreva o window.atOptions do outro.
+            var iframe = document.createElement('iframe');
+            iframe.width = width;
+            iframe.height = height;
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('scrolling', 'no');
+            iframe.setAttribute('allowtransparency', 'true');
+            iframe.setAttribute('title', 'Advertisement');
+            iframe.style.cssText = 'border:none;overflow:hidden;width:' + width + 'px;height:' + height + 'px;max-width:100%;display:block;margin:0 auto;background:transparent;';
+
+            slot.appendChild(iframe);
+
+            try {
+                var doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><base href="' + location.href + '"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;width:100%;height:100%;}</style></head><body>' + adHtml + '</body></html>');
+                doc.close();
+
+                // Verificação de AdBlock ou falha de rede (se após 5s não houver nada, mostra fallback)
+                setTimeout(function() {
+                    try {
+                        var cDoc = iframe.contentWindow.document;
+                        var hasContent = cDoc && cDoc.body && (
+                            cDoc.querySelector('iframe, canvas, ins, img, a, [id*="at-"], [class*="adsterra"]') ||
+                            cDoc.body.children.length > 2 ||
+                            (cDoc.body.innerText && cDoc.body.innerText.trim().length > 0)
+                        );
+                        if (!hasContent && fallback) {
+                            iframe.style.display = 'none';
+                            fallback.style.display = 'flex';
+                        }
+                    } catch(e) {
+                        // Se virou cross-origin (iframe criado pela rede de anúncio), carregou com sucesso!
                     }
-                    Array.from(node.attributes).forEach(function(a) {
-                        if (a.name !== 'src') s.setAttribute(a.name, a.value);
-                    });
-                    container.appendChild(s);
-                } else {
-                    container.appendChild(node);
-                }
+                }, 5000);
+            } catch(e) {
+                console.error('Ad load error (' + slotId + '):', e);
+                if (fallback) fallback.style.display = 'flex';
             }
         }
 
-        function loadAds() {
-            // Carrega anúncios dos slots com data-ad
-            var slots = document.querySelectorAll('[data-ad]');
-            slots.forEach(function(slot) {
-                var adHtml = slot.getAttribute('data-ad');
-                if (adHtml) {
-                    // Esconde o fallback se o slot tiver conteúdo real
-                    var fallback = slot.querySelector('.sim-ad-mini');
-                    if (fallback) fallback.style.display = 'none';
-                    slot.removeAttribute('data-ad');
-                    injectAdScript(adHtml, slot);
-                    // Revela fallback se o ad não carregar em 5s
-                    setTimeout(function() {
-                        var hasReal = slot.querySelector('iframe, canvas, ins');
-                        if (!hasReal && fallback) fallback.style.display = '';
-                    }, 5000);
-                }
-            });
+        function loadAllAds() {
+            // 1. Banner lateral esquerdo (160x600)
+            loadAdSlot('ad-slot-left', 160, 600, 'ad-fallback-left');
 
-            // Popunder: carregado por último, com delay de 2s após a página estar pronta
+            // 2. Banner lateral direito (160x600)
+            loadAdSlot('ad-slot-right', 160, 600, 'ad-fallback-right');
+
+            // 3. Banner horizontal abaixo da busca (728x90)
+            var bottomWidth = window.innerWidth < 768 ? Math.min(window.innerWidth - 32, 728) : 728;
+            var bottomHeight = window.innerWidth < 768 ? 100 : 90;
+            loadAdSlot('ad-slot-bottom', bottomWidth, bottomHeight, 'ad-fallback-bottom');
+
+            // 4. Popunder (precisa rodar no escopo principal para disparar em cliques na página)
             {% if settings and settings.ads_enabled == '1' and settings.ad_popunder %}
             setTimeout(function() {
-                injectAdScript({{ settings.ad_popunder | tojson }}, document.body);
+                try {
+                    var rawPop = {{ settings.ad_popunder | tojson }};
+                    if (!rawPop) return;
+                    var temp = document.createElement('div');
+                    temp.innerHTML = rawPop;
+                    var scripts = temp.querySelectorAll('script');
+                    scripts.forEach(function(oldScript) {
+                        var newScript = document.createElement('script');
+                        if (oldScript.src) {
+                            newScript.src = oldScript.src;
+                            newScript.async = true;
+                        } else {
+                            newScript.textContent = oldScript.textContent;
+                        }
+                        Array.from(oldScript.attributes).forEach(function(a) {
+                            if (a.name !== 'src') newScript.setAttribute(a.name, a.value);
+                        });
+                        document.body.appendChild(newScript);
+                    });
+                } catch(e) {
+                    console.error('Popunder init err:', e);
+                }
             }, 2000);
             {% endif %}
         }
 
-        // Aguarda a página carregar completamente antes de injetar qualquer ad
         if (document.readyState === 'complete') {
-            loadAds();
+            loadAllAds();
         } else {
-            window.addEventListener('load', loadAds);
+            window.addEventListener('load', loadAllAds);
         }
     })();
     </script>
