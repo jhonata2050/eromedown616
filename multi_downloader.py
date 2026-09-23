@@ -1,9 +1,11 @@
 """
-multi_downloader.py — XVideos & PornHub extractor (sem yt-dlp)
+multi_downloader.py — XVideos, PornHub & LuxureTV extractor
 """
-import re, json, requests, urllib3
+import re, json, requests, urllib3, subprocess, shutil, socket
+import urllib3.util.connection as urllib3_cn
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
 
 _s = requests.Session()
 _s.verify = False
@@ -15,6 +17,42 @@ UA = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
 }
+
+def _fetch_page(url, referer='https://luxuretv.com/'):
+    # 1. Tentar curl primeiro: contorna fingerprinting TLS do Cloudflare em servidores Linux/VPS
+    curl_bin = shutil.which('curl')
+    if curl_bin:
+        try:
+            cmd = [
+                curl_bin, '-s', '-L',
+                '-A', UA['User-Agent'],
+                '-H', f'Referer: {referer}',
+                '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                '-H', 'Accept-Language: en-US,en;q=0.9,pt-BR;q=0.8',
+                '--compressed',
+                '--max-time', '15',
+                url
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore', timeout=18)
+            if res.returncode == 0 and res.stdout and len(res.stdout) > 200:
+                return res.stdout
+        except Exception:
+            pass
+
+    # 2. Fallback para requests session
+    try:
+        headers = {
+            **UA,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': referer
+        }
+        r = _s.get(url, headers=headers, timeout=15)
+        if r.status_code == 200 and r.text:
+            return r.text
+    except Exception:
+        pass
+    return ''
 
 def detect_site(url):
     u = url.lower()
@@ -103,79 +141,62 @@ def _luxuretv_extract(url):
     slug_m = re.search(r'/videos/(?:[^/]+/)?([^/]+?)(?:-\d+)?\.html', url)
     if slug_m:
         slug = re.sub(r'-\d+$', '', slug_m.group(1))
-        slug_title = _clean(slug.replace('-', ' ').title())
+        clean_slug = re.sub(r'\s+', ' ', slug.replace('-', ' ')).strip().title()
+        slug_title = _clean(clean_slug)
 
     title = slug_title or 'LuxureTV'
     thumb = ''
     vid_url = None
 
-    browser_headers = {
-        **UA,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8',
-        'Referer': 'https://luxuretv.com/',
-        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
-        'Sec-Ch-Ua-Mobile': '?0',
-        'Sec-Ch-Ua-Platform': '"Windows"',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'same-origin',
-        'Upgrade-Insecure-Requests': '1',
-    }
+    # 3. Strategy 1: Fetch main video page
+    html_main = _fetch_page(url, referer='https://luxuretv.com/')
+    if html_main:
+        t = re.search(r'<title>(.*?)</title>', html_main, re.I | re.S)
+        if t:
+            raw_title = re.sub(r'\s*[-|]\s*LuxureTV(?:\.com)?\s*$', '', t.group(1), flags=re.I).strip()
+            parsed_title = _clean(raw_title)
+            if parsed_title:
+                title = parsed_title
 
-    # 3. Strategy A: Extract stream directly from embed endpoint (bypasses Cloudflare bot challenge)
-    if vid_id:
+        th_m = re.search(r'poster=["\']([^"\']+)["\']', html_main, re.I) or \
+               re.search(r'"thumbnailUrl"\s*:\s*"([^"]+)"', html_main, re.I) or \
+               re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', html_main, re.I)
+        if th_m:
+            thumb = th_m.group(1).replace('\\/', '/')
+
+        src_matches = re.findall(r'<source[^>]+src=["\']([^"\']+)["\']', html_main, re.I)
+        for s in src_matches:
+            if 'cf-stream' in s and (not vid_id or vid_id in s):
+                vid_url = s.replace('&amp;', '&').strip()
+                break
+        if not vid_url:
+            for s in src_matches:
+                if 'cf-stream' in s and 'videoai' not in s:
+                    vid_url = s.replace('&amp;', '&').strip()
+                    break
+
+    # 4. Strategy 2: If main page didn't yield stream, fetch embed endpoints
+    if not vid_url and vid_id:
         embed_endpoints = [
             f'https://en.luxuretv.com/embed/{vid_id}',
             f'https://luxuretv.com/embed/{vid_id}'
         ]
         for ep in embed_endpoints:
-            try:
-                r_embed = _s.get(ep, headers={**browser_headers, 'Referer': 'https://luxuretv.com/'}, timeout=12)
-                if r_embed.status_code == 200 and r_embed.text:
-                    src_m = re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', r_embed.text, re.I)
-                    if not src_m:
-                        src_m = re.search(r'<source[^>]+src=["\']([^"\']+)["\']', r_embed.text, re.I)
-                    if src_m:
-                        vid_url = src_m.group(1).replace('&amp;', '&').strip()
-
-                    th_m = re.search(r'poster=["\']([^"\']+)["\']', r_embed.text, re.I)
+            html_embed = _fetch_page(ep, referer='https://luxuretv.com/')
+            if html_embed:
+                src_m = re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', html_embed, re.I)
+                if not src_m:
+                    src_m = re.search(r'<source[^>]+src=["\']([^"\']+)["\']', html_embed, re.I)
+                if src_m:
+                    candidate = src_m.group(1).replace('&amp;', '&').strip()
+                    if 'videoai' not in candidate:
+                        vid_url = candidate
+                if not thumb:
+                    th_m = re.search(r'poster=["\']([^"\']+)["\']', html_embed, re.I)
                     if th_m:
                         thumb = th_m.group(1).replace('\\/', '/')
-                    if vid_url:
-                        break
-            except Exception:
-                pass
-
-    # 4. Strategy B: Attempt main page for better title/stream if embed didn't get vid_url or to improve title
-    try:
-        resp = _s.get(url, headers={**browser_headers, 'Referer': 'https://luxuretv.com/'}, timeout=15)
-        if resp.status_code == 200:
-            html = resp.text
-            t = re.search(r'<title>(.*?)</title>', html, re.I | re.S)
-            if t:
-                raw_title = t.group(1)
-                raw_title = re.sub(r'\s*[-|]\s*LuxureTV(?:\.com)?\s*$', '', raw_title, flags=re.I).strip()
-                parsed_title = _clean(raw_title)
-                if parsed_title:
-                    title = parsed_title
-
-            if not thumb:
-                th_m = re.search(r'poster=["\']([^"\']+)["\']', html) or \
-                       re.search(r'"thumbnailUrl"\s*:\s*"([^"]+)"', html) or \
-                       re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', html)
-                if th_m:
-                    thumb = th_m.group(1).replace('\\/', '/')
-
-            if not vid_url:
-                source_m = re.search(r'<video[^>]*id=["\']thisPlayer["\'][^>]*>.*?<source[^>]+src=["\']([^"\']+)["\']', html, re.DOTALL | re.I) or \
-                           re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', html, re.I) or \
-                           re.search(r'["\'](https?://[^"\']*(?:cf-stream)[^"\']*)["\']', html, re.I)
-                if source_m:
-                    vid_url = source_m.group(1).replace('&amp;', '&').strip()
-    except Exception:
-        # If main page fails (e.g. 403 on datacenter IP), proceed gracefully with embed result
-        pass
+                if vid_url:
+                    break
 
     if not vid_url:
         raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto.')
