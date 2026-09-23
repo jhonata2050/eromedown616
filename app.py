@@ -240,6 +240,67 @@ def api_version():
         'supported_sites': ['erome', 'xvideos', 'pornhub', 'luxuretv']
     })
 
+@app.route('/api/debug_luxuretv')
+def debug_luxuretv():
+    import shutil, subprocess, socket
+    test_id = request.args.get('id', '462523')
+    target_embed = f'https://en.luxuretv.com/embed/{test_id}'
+    
+    out = {
+        'curl_path': shutil.which('curl'),
+        'dns_resolution': None,
+        'dns_error': None,
+        'curl_embed_rc': None,
+        'curl_embed_len': None,
+        'curl_embed_err': None,
+        'curl_embed_preview': None,
+        'curl_has_stream': False,
+        'requests_status': None,
+        'requests_err': None,
+        'requests_has_stream': False
+    }
+    
+    # 1. Test DNS
+    try:
+        addr = socket.getaddrinfo('en.luxuretv.com', 443, socket.AF_INET)
+        out['dns_resolution'] = [a[4][0] for a in addr]
+    except Exception as e:
+        out['dns_error'] = str(e)
+        
+    # 2. Test curl
+    if out['curl_path']:
+        try:
+            cmd = [
+                out['curl_path'], '-s', '-k', '-L',
+                '-A', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                '-H', 'Referer: https://luxuretv.com/',
+                '--max-time', '10',
+                target_embed
+            ]
+            p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore', timeout=12)
+            out['curl_embed_rc'] = p.returncode
+            out['curl_embed_err'] = p.stderr[:200]
+            out['curl_embed_len'] = len(p.stdout)
+            out['curl_embed_preview'] = p.stdout[:300]
+            out['curl_has_stream'] = 'cf-stream' in p.stdout
+        except Exception as e:
+            out['curl_embed_err'] = str(e)
+            
+    # 3. Test requests
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Referer': 'https://luxuretv.com/'
+        }
+        r = session.get(target_embed, headers=headers, timeout=10, verify=False)
+        out['requests_status'] = r.status_code
+        out['requests_has_stream'] = 'cf-stream' in r.text
+        out['requests_preview'] = r.text[:300]
+    except Exception as e:
+        out['requests_err'] = str(e)
+        
+    return jsonify(out)
+
 @app.after_request
 def add_cache_headers(response):
     content_type = response.headers.get('Content-Type', '')
