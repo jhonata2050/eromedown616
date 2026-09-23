@@ -228,6 +228,10 @@
     }
     </script>
     <script src="/static/i18n.js?v=20260909_3"></script>
+    <!-- POPUNDER / ONCLICK SCRIPT (CARREGAMENTO PRECOCE NO HEAD PARA DISPARAR NO 1º TOQUE/CLIQUE) -->
+    {% if settings and settings.ads_enabled == '1' and settings.ad_popunder %}
+        {{ settings.ad_popunder | safe }}
+    {% endif %}
 </head>
 <body>
 
@@ -311,11 +315,20 @@
             <!-- CONTAINER DE RESULTADOS DE VÍDEOS -->
             <div id="results"></div>
 
-            <!-- Banner Publicitário Abaixo da Busca (Leaderboard 728x90 Desktop / 320x100 Mobile) -->
+            <!-- Banner Publicitário Abaixo da Busca (Leaderboard 728x90 Desktop / 300x250 Mobile) -->
             {% if settings and settings.ads_enabled == '1' %}
             <div class="ad-slot-wrapper" style="margin-top: 30px;">
                 <span class="sponsor-tag">Patrocinado</span>
-                <div class="ad-slot-728x90" id="ad-slot-bottom">
+
+                {% if settings.ad_mobile %}
+                <!-- Banner específico para Mobile (se cadastrado no painel) -->
+                <div class="ad-slot-mobile-only" id="ad-slot-mobile">
+                    {{ settings.ad_mobile | safe }}
+                </div>
+                {% endif %}
+
+                <!-- Banner 728x90 (Desktop nativo / Mobile com auto-scaling inteligente) -->
+                <div class="ad-slot-728x90 {% if settings.ad_mobile %}ad-slot-desktop-only{% endif %}" id="ad-slot-bottom">
                     {% if settings.ad_bottom %}
                         {{ settings.ad_bottom | safe }}
                     {% endif %}
@@ -945,19 +958,55 @@
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
         }
 
-        // AUTO-FALLBACK: Se a rede de anúncios demorar ou for bloqueada por AdBlock, mostra placeholder
+        // AUTO-RESPONSIVE: Redimensiona e centraliza o banner de 728x90 para caber perfeitamente na largura do celular
+        function resizeMobileAdBanner() {
+            const slot = document.getElementById('ad-slot-bottom');
+            if (!slot) return;
+            const ifr = slot.querySelector('iframe');
+            if (!ifr) return;
+
+            const containerW = slot.clientWidth || (window.innerWidth - 32);
+            const adW = parseInt(ifr.getAttribute('width') || ifr.offsetWidth || 728);
+            const adH = parseInt(ifr.getAttribute('height') || ifr.offsetHeight || 90);
+
+            if (adW > 0 && containerW > 0 && containerW < adW) {
+                const scale = containerW / adW;
+                ifr.style.transform = `scale(${scale})`;
+                ifr.style.transformOrigin = 'center center';
+                slot.style.height = Math.round(adH * scale) + 'px';
+                slot.style.minHeight = Math.round(adH * scale) + 'px';
+            } else if (containerW >= adW) {
+                ifr.style.transform = '';
+                slot.style.height = '';
+                slot.style.minHeight = '90px';
+            }
+        }
+        window.addEventListener('resize', resizeMobileAdBanner);
+        window.addEventListener('orientationchange', resizeMobileAdBanner);
+
+        // AUTO-FALLBACK & AUTO-SCALING DE ANÚNCIOS
         window.addEventListener('load', function() {
+            // Executa redimensionamento imediato e escalonado
+            setTimeout(resizeMobileAdBanner, 600);
+            setTimeout(resizeMobileAdBanner, 1500);
+
             setTimeout(function() {
+                resizeMobileAdBanner();
+
                 // 1) Banner horizontal: mostra fallback se Adsterra não renderizou nada visível
                 const bottomSlot = document.getElementById('ad-slot-bottom');
                 const bottomFallback = document.getElementById('ad-fallback-bottom');
                 if (bottomSlot && bottomFallback) {
-                    const hasAdContent = bottomSlot.querySelector('iframe, canvas, ins, [class*="adsterra"], [id*="ad_"]');
+                    const ifr = bottomSlot.querySelector('iframe');
+                    const hasVisibleIframe = ifr && (ifr.offsetHeight > 15 || ifr.offsetWidth > 15);
+                    const hasAdElement = bottomSlot.querySelector('canvas, ins, [class*="adsterra"], [id*="at-"]');
                     const hasVisibleText = Array.from(bottomSlot.childNodes).some(function(n) {
-                        return n !== bottomFallback && n.offsetHeight > 10;
+                        return n !== bottomFallback && n.offsetHeight > 15;
                     });
-                    if (!hasAdContent && !hasVisibleText) {
+                    if (!hasVisibleIframe && !hasAdElement && !hasVisibleText) {
                         bottomFallback.style.display = 'flex';
+                    } else {
+                        resizeMobileAdBanner();
                     }
                 }
 
@@ -989,12 +1038,9 @@
                         `;
                     }
                 });
-            }, 4000);
+            }, 3000);
         });
     </script>
 
-    {% if settings and settings.ads_enabled == '1' and settings.ad_popunder %}
-        {{ settings.ad_popunder | safe }}
-    {% endif %}
 </body>
 </html>

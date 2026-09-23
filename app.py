@@ -588,7 +588,7 @@ def secret_admin_save(secret_slug):
     section = request.form.get('section', 'ads')
     
     if section == 'ads':
-        fields = ['ad_top', 'ad_bottom', 'ad_left', 'ad_right', 'ad_popunder']
+        fields = ['ad_top', 'ad_bottom', 'ad_left', 'ad_right', 'ad_popunder', 'ad_mobile']
         for f in fields:
             update_setting(f, request.form.get(f, ''))
             

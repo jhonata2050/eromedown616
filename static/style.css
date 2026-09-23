@@ -1195,3 +1195,51 @@ a {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ==========================================================================
+   MOBILE & RESPONSIVE AD BANNERS + POPUNDER TRIGGER FIX
+   ========================================================================== */
+html, body {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.ad-slot-mobile-only {
+    display: none;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    overflow: hidden;
+    justify-content: center;
+    align-items: center;
+}
+
+.ad-slot-728x90 {
+    transition: transform 0.2s ease, height 0.2s ease;
+}
+
+@media (max-width: 768px) {
+    .ad-slot-mobile-only {
+        display: flex !important;
+    }
+    .ad-slot-desktop-only {
+        display: none !important;
+    }
+    .ad-slot-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 8px !important;
+        margin: 16px auto !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    .ad-slot-728x90 {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
