@@ -231,6 +231,15 @@ Sitemap: https://eromedown.org/sitemap.xml
     return Response(txt, mimetype='text/plain',
                     headers={'Cache-Control': 'public, max-age=86400'})
 
+@app.route('/api/version')
+def api_version():
+    return jsonify({
+        'version': 'v3.2-curl',
+        'status': 'online',
+        'time': '2026-09-23T20:00:00-03:00',
+        'supported_sites': ['erome', 'xvideos', 'pornhub', 'luxuretv']
+    })
+
 @app.after_request
 def add_cache_headers(response):
     content_type = response.headers.get('Content-Type', '')

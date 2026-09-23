@@ -19,25 +19,26 @@ UA = {
 }
 
 def _fetch_page(url, referer='https://luxuretv.com/'):
-    # 1. Tentar curl primeiro: contorna fingerprinting TLS do Cloudflare em servidores Linux/VPS
+    # 1. Tentar curl primeiro com -k e suporte a HTTP/1.1 para contornar Cloudflare em VPS
     curl_bin = shutil.which('curl')
     if curl_bin:
-        try:
-            cmd = [
-                curl_bin, '-s', '-L',
-                '-A', UA['User-Agent'],
-                '-H', f'Referer: {referer}',
-                '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                '-H', 'Accept-Language: en-US,en;q=0.9,pt-BR;q=0.8',
-                '--compressed',
-                '--max-time', '15',
-                url
-            ]
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore', timeout=18)
-            if res.returncode == 0 and res.stdout and len(res.stdout) > 200:
-                return res.stdout
-        except Exception:
-            pass
+        for extra_flags in [[], ['--http1.1']]:
+            try:
+                cmd = [
+                    curl_bin, '-s', '-k', '-L',
+                    '-A', UA['User-Agent'],
+                    '-H', f'Referer: {referer}',
+                    '-H', 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    '-H', 'Accept-Language: en-US,en;q=0.9,pt-BR;q=0.8',
+                    '--compressed',
+                    '--max-time', '15',
+                ] + extra_flags + [url]
+                res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore', timeout=18)
+                if res.returncode == 0 and res.stdout and len(res.stdout) > 200:
+                    if 'Just a moment...' not in res.stdout and 'Attention Required! | Cloudflare' not in res.stdout:
+                        return res.stdout
+            except Exception:
+                pass
 
     # 2. Fallback para requests session
     try:
@@ -49,7 +50,8 @@ def _fetch_page(url, referer='https://luxuretv.com/'):
         }
         r = _s.get(url, headers=headers, timeout=15)
         if r.status_code == 200 and r.text:
-            return r.text
+            if 'Just a moment...' not in r.text and 'Attention Required! | Cloudflare' not in r.text:
+                return r.text
     except Exception:
         pass
     return ''
@@ -199,7 +201,18 @@ def _luxuretv_extract(url):
                     break
 
     if not vid_url:
-        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto.')
+        for raw_html in [html_main, locals().get('html_embed', '')]:
+            if not raw_html: continue
+            raw_matches = re.findall(r'(https?://[^\s"\'<>]*cf-stream[^\s"\'<>]*(?:\.mp4|\?md5=[^\s"\'<>]*))', raw_html, re.I)
+            for rm in raw_matches:
+                if 'videoai' not in rm:
+                    vid_url = rm.replace('&amp;', '&').strip()
+                    break
+            if vid_url:
+                break
+
+    if not vid_url:
+        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto. (Build: v3.2-curl)')
 
     return {
         'title': title,
