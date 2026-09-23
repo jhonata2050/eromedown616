@@ -20,6 +20,7 @@ def detect_site(url):
     u = url.lower()
     if 'xvideos.com' in u: return 'xvideos'
     if 'pornhub.com' in u: return 'pornhub'
+    if 'luxuretv.com' in u: return 'luxuretv'
     return None
 
 def _clean(t):
@@ -92,8 +93,54 @@ def _pornhub_extract(url):
     if not videos: raise ValueError('Nenhum vídeo encontrado.')
     return {'title': title, 'videos': videos}
 
+def _luxuretv_extract(url):
+    resp = _s.get(url, headers={**UA, 'Referer': 'https://luxuretv.com/'}, timeout=20)
+    resp.raise_for_status()
+    html = resp.text
+
+    # Title
+    t = re.search(r'<title>(.*?)</title>', html, re.I | re.S)
+    raw_title = t.group(1) if t else 'LuxureTV'
+    raw_title = re.sub(r'\s*[-|]\s*LuxureTV(?:\.com)?\s*$', '', raw_title, flags=re.I).strip()
+    title = _clean(raw_title) or 'LuxureTV'
+
+    # Thumbnail
+    thumb = ''
+    th_m = re.search(r'poster=["\']([^"\']+)["\']', html)
+    if not th_m:
+        th_m = re.search(r'"thumbnailUrl"\s*:\s*"([^"]+)"', html)
+    if not th_m:
+        th_m = re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', html)
+    if th_m:
+        thumb = th_m.group(1).replace('\\/', '/')
+
+    # Video stream URL
+    source_m = re.search(r'<video[^>]*id=["\']thisPlayer["\'][^>]*>.*?<source[^>]+src=["\']([^"\']+)["\']', html, re.DOTALL | re.I)
+    if not source_m:
+        source_m = re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', html, re.I)
+    if not source_m:
+        source_m = re.search(r'["\'](https?://[^"\']*(?:cf-stream)[^"\']*)["\']', html, re.I)
+
+    if not source_m:
+        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV.')
+
+    vid_url = source_m.group(1).replace('&amp;', '&').strip()
+    return {
+        'title': title,
+        'videos': [{
+            'title': title,
+            'filename': f'{title}.mp4',
+            'url': vid_url,
+            'type': 'video',
+            'quality': 'HD',
+            'thumbnail': thumb,
+        }]
+    }
+
 def extract(url):
     site = detect_site(url)
     if site == 'xvideos': return _xvideos_extract(url)
     if site == 'pornhub': return _pornhub_extract(url)
+    if site == 'luxuretv': return _luxuretv_extract(url)
     raise ValueError(f'Site não suportado: {url}')
+

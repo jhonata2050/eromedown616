@@ -253,7 +253,7 @@ def get_video():
 
     # ── Detectar site e redirecionar ──────────────────────────────
     site = detect_site(url)
-    if site in ('xvideos', 'pornhub'):
+    if site in ('xvideos', 'pornhub', 'luxuretv'):
         try:
             result = multi_extract(url)
             # Formatar vídeos no mesmo padrão do Erome
@@ -276,7 +276,7 @@ def get_video():
             return jsonify({'error': str(e)})
 
     if 'erome.com' not in url:
-        return jsonify({'error': 'Site não suportado. Cole um link do Erome, XVideos ou PornHub.'})
+        return jsonify({'error': 'Site não suportado. Cole um link do Erome, XVideos, PornHub ou LuxureTV.'})
 
     try:
         headers = {
@@ -354,8 +354,18 @@ def proxy_download():
         'Origin': 'https://www.erome.com'
     }
     
+    page_url_arg = request.args.get('page_url', '')
     if 'erome.com' in video_url or platform == 'erome':
         headers['Referer'] = 'https://www.erome.com/'
+    elif 'luxuretv.com' in video_url or 'luxuretv' in page_url_arg or platform == 'luxuretv':
+        headers['Referer'] = 'https://luxuretv.com/'
+        headers['Origin'] = 'https://luxuretv.com'
+    elif 'xvideos.com' in video_url or 'xvideos' in page_url_arg or platform == 'xvideos':
+        headers['Referer'] = 'https://www.xvideos.com/'
+        headers['Origin'] = 'https://www.xvideos.com'
+    elif 'pornhub.com' in video_url or 'phncdn.com' in video_url or 'pornhub' in page_url_arg or platform == 'pornhub':
+        headers['Referer'] = 'https://www.pornhub.com/'
+        headers['Origin'] = 'https://www.pornhub.com'
     elif 'tiktok' in video_url or platform == 'tiktok':
         headers['Referer'] = 'https://www.tiktok.com/'
     elif 'twimg.com' in video_url or platform in ('twitter', 'x'):
