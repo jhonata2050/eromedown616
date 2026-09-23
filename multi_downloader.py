@@ -200,19 +200,32 @@ def _luxuretv_extract(url):
                 if vid_url:
                     break
 
-    if not vid_url:
-        for raw_html in [html_main, locals().get('html_embed', '')]:
-            if not raw_html: continue
-            raw_matches = re.findall(r'(https?://[^\s"\'<>]*cf-stream[^\s"\'<>]*(?:\.mp4|\?md5=[^\s"\'<>]*))', raw_html, re.I)
-            for rm in raw_matches:
-                if 'videoai' not in rm:
-                    vid_url = rm.replace('&amp;', '&').strip()
-                    break
-            if vid_url:
-                break
+    # 5. Strategy 3: Cloudflare Turnstile bypass for datacenter/VPS IPs via Jina Reader
+    if not vid_url and vid_id:
+        curl_bin = shutil.which('curl')
+        if curl_bin:
+            for ep in [f'https://en.luxuretv.com/embed/{vid_id}', f'https://luxuretv.com/embed/{vid_id}']:
+                try:
+                    jina_url = f'https://r.jina.ai/{ep}'
+                    cmd = [curl_bin, '-s', '-L', '-H', 'X-Return-Format: html', '--max-time', '15', jina_url]
+                    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', errors='ignore', timeout=18)
+                    if p.returncode == 0 and p.stdout:
+                        src_m = re.search(r'src=["\']([^"\']*(?:cf-stream)[^"\']*)["\']', p.stdout)
+                        if src_m:
+                            candidate = src_m.group(1).replace('&amp;', '&').strip()
+                            if 'videoai' not in candidate:
+                                vid_url = candidate
+                        if not thumb:
+                            th_m = re.search(r'poster=["\']([^"\']+)["\']', p.stdout)
+                            if th_m:
+                                thumb = th_m.group(1).replace('\\/', '/')
+                        if vid_url:
+                            break
+                except Exception:
+                    pass
 
     if not vid_url:
-        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto. (Build: v3.2-curl)')
+        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto. (Build: v3.3-jina-cf-bypass)')
 
     return {
         'title': title,

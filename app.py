@@ -234,9 +234,9 @@ Sitemap: https://eromedown.org/sitemap.xml
 @app.route('/api/version')
 def api_version():
     return jsonify({
-        'version': 'v3.2-curl',
+        'version': 'v3.3-jina-cf-bypass',
         'status': 'online',
-        'time': '2026-09-23T20:00:00-03:00',
+        'time': '2026-09-23T20:28:00-03:00',
         'supported_sites': ['erome', 'xvideos', 'pornhub', 'luxuretv']
     })
 
