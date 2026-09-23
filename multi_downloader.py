@@ -94,37 +94,92 @@ def _pornhub_extract(url):
     return {'title': title, 'videos': videos}
 
 def _luxuretv_extract(url):
-    resp = _s.get(url, headers={**UA, 'Referer': 'https://luxuretv.com/'}, timeout=20)
-    resp.raise_for_status()
-    html = resp.text
+    # 1. Parse video ID
+    id_m = re.search(r'[-_/](\d+)\.html', url) or re.search(r'/embed/(\d+)', url) or re.search(r'(\d+)', url)
+    vid_id = id_m.group(1) if id_m else None
 
-    # Title
-    t = re.search(r'<title>(.*?)</title>', html, re.I | re.S)
-    raw_title = t.group(1) if t else 'LuxureTV'
-    raw_title = re.sub(r'\s*[-|]\s*LuxureTV(?:\.com)?\s*$', '', raw_title, flags=re.I).strip()
-    title = _clean(raw_title) or 'LuxureTV'
+    # 2. Derive title from slug as high-quality default
+    slug_title = 'LuxureTV'
+    slug_m = re.search(r'/videos/(?:[^/]+/)?([^/]+?)(?:-\d+)?\.html', url)
+    if slug_m:
+        slug = re.sub(r'-\d+$', '', slug_m.group(1))
+        slug_title = _clean(slug.replace('-', ' ').title())
 
-    # Thumbnail
+    title = slug_title or 'LuxureTV'
     thumb = ''
-    th_m = re.search(r'poster=["\']([^"\']+)["\']', html)
-    if not th_m:
-        th_m = re.search(r'"thumbnailUrl"\s*:\s*"([^"]+)"', html)
-    if not th_m:
-        th_m = re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', html)
-    if th_m:
-        thumb = th_m.group(1).replace('\\/', '/')
+    vid_url = None
 
-    # Video stream URL
-    source_m = re.search(r'<video[^>]*id=["\']thisPlayer["\'][^>]*>.*?<source[^>]+src=["\']([^"\']+)["\']', html, re.DOTALL | re.I)
-    if not source_m:
-        source_m = re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', html, re.I)
-    if not source_m:
-        source_m = re.search(r'["\'](https?://[^"\']*(?:cf-stream)[^"\']*)["\']', html, re.I)
+    browser_headers = {
+        **UA,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8',
+        'Referer': 'https://luxuretv.com/',
+        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Upgrade-Insecure-Requests': '1',
+    }
 
-    if not source_m:
-        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV.')
+    # 3. Strategy A: Extract stream directly from embed endpoint (bypasses Cloudflare bot challenge)
+    if vid_id:
+        embed_endpoints = [
+            f'https://en.luxuretv.com/embed/{vid_id}',
+            f'https://luxuretv.com/embed/{vid_id}'
+        ]
+        for ep in embed_endpoints:
+            try:
+                r_embed = _s.get(ep, headers={**browser_headers, 'Referer': 'https://luxuretv.com/'}, timeout=12)
+                if r_embed.status_code == 200 and r_embed.text:
+                    src_m = re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', r_embed.text, re.I)
+                    if not src_m:
+                        src_m = re.search(r'<source[^>]+src=["\']([^"\']+)["\']', r_embed.text, re.I)
+                    if src_m:
+                        vid_url = src_m.group(1).replace('&amp;', '&').strip()
 
-    vid_url = source_m.group(1).replace('&amp;', '&').strip()
+                    th_m = re.search(r'poster=["\']([^"\']+)["\']', r_embed.text, re.I)
+                    if th_m:
+                        thumb = th_m.group(1).replace('\\/', '/')
+                    if vid_url:
+                        break
+            except Exception:
+                pass
+
+    # 4. Strategy B: Attempt main page for better title/stream if embed didn't get vid_url or to improve title
+    try:
+        resp = _s.get(url, headers={**browser_headers, 'Referer': 'https://luxuretv.com/'}, timeout=15)
+        if resp.status_code == 200:
+            html = resp.text
+            t = re.search(r'<title>(.*?)</title>', html, re.I | re.S)
+            if t:
+                raw_title = t.group(1)
+                raw_title = re.sub(r'\s*[-|]\s*LuxureTV(?:\.com)?\s*$', '', raw_title, flags=re.I).strip()
+                parsed_title = _clean(raw_title)
+                if parsed_title:
+                    title = parsed_title
+
+            if not thumb:
+                th_m = re.search(r'poster=["\']([^"\']+)["\']', html) or \
+                       re.search(r'"thumbnailUrl"\s*:\s*"([^"]+)"', html) or \
+                       re.search(r'<meta\s+property="og:image"\s+content="([^"]+)"', html)
+                if th_m:
+                    thumb = th_m.group(1).replace('\\/', '/')
+
+            if not vid_url:
+                source_m = re.search(r'<video[^>]*id=["\']thisPlayer["\'][^>]*>.*?<source[^>]+src=["\']([^"\']+)["\']', html, re.DOTALL | re.I) or \
+                           re.search(r'<source[^>]+src=["\']([^"\']*(?:cf-stream|media\.luxuretv)[^"\']*)["\']', html, re.I) or \
+                           re.search(r'["\'](https?://[^"\']*(?:cf-stream)[^"\']*)["\']', html, re.I)
+                if source_m:
+                    vid_url = source_m.group(1).replace('&amp;', '&').strip()
+    except Exception:
+        # If main page fails (e.g. 403 on datacenter IP), proceed gracefully with embed result
+        pass
+
+    if not vid_url:
+        raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto.')
+
     return {
         'title': title,
         'videos': [{
