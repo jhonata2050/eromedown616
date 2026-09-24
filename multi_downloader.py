@@ -227,17 +227,55 @@ def _luxuretv_extract(url):
     if not vid_url:
         raise ValueError('Nenhum vídeo MP4 encontrado nesta página do LuxureTV. Verifique se o link está correto. (Build: v3.3-jina-cf-bypass)')
 
+    # 6. Resolve link direto dos servidores de mídia (media1..media12), contornando 100% o Cloudflare 403 do cf-stream
+    direct_resolved = resolve_luxuretv_media(vid_url)
+    final_vid_url = direct_resolved if direct_resolved else vid_url
+
     return {
         'title': title,
         'videos': [{
             'title': title,
             'filename': f'{title}.mp4',
-            'url': vid_url,
+            'url': final_vid_url,
             'type': 'video',
             'quality': 'HD',
             'thumbnail': thumb,
         }]
     }
+
+def resolve_luxuretv_media(cf_url):
+    """
+    Transforma URLs de cf-stream protegidas por Cloudflare no link direto de streaming
+    dos servidores de mídia (media1 a media14.luxuretv.com), contornando 100% o Cloudflare Turnstile.
+    """
+    if not cf_url or 'cf-stream' not in cf_url:
+        return cf_url
+    m = re.search(r'cf-stream/\d+/(.+?\?.*)', cf_url)
+    if not m:
+        m = re.search(r'cf-stream/\d+/(.+)', cf_url)
+        if not m:
+            return cf_url
+    subpath = m.group(1)
+    video_path = f'/videos/{subpath}'
+
+    import concurrent.futures
+    def check_server(num):
+        server_url = f'https://media{num}.luxuretv.com{video_path}'
+        try:
+            r = _s.head(server_url, headers={'Referer': 'https://luxuretv.com/'}, timeout=3)
+            if r.status_code == 200 and 'video' in r.headers.get('Content-Type', '').lower():
+                return server_url
+        except Exception:
+            pass
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=14) as executor:
+        futures = [executor.submit(check_server, i) for i in range(1, 15)]
+        for f in concurrent.futures.as_completed(futures):
+            res = f.result()
+            if res:
+                return res
+    return cf_url
 
 def extract(url):
     site = detect_site(url)

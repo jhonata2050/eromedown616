@@ -295,7 +295,7 @@
                                 <path d="M2 12h20"></path>
                             </svg>
                         </div>
-                        <input type="text" id="url" name="url" class="hero-input-field" placeholder="Cole o link do Erome, XVideos, PornHub ou LuxureTV..." data-i18n-placeholder="search_placeholder" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url">
+                        <input type="text" id="url" name="url" class="hero-input-field" placeholder="Cole o link do Erome, XVideos, PornHub ou LuxureTV..." data-i18n-placeholder="search_placeholder" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" value="{{ initial_url or '' }}">
                         <button type="button" class="hero-paste-btn" onclick="pasteClipboard('url')" data-i18n="paste_btn" aria-label="Colar link">
                             📋 Colar
                         </button>
@@ -557,6 +557,19 @@
         const submitBtn = document.getElementById('submitBtn');
         let currentVideos = [];
 
+        // AUTO-BUSCA AO CARREGAR SE HOUVER URL (ex: eromedown.org/https://... ou eromedown.org/?url=...)
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const target = params.get('url') || document.getElementById('url')?.value?.trim();
+            if (target) {
+                const input = document.getElementById('url');
+                if (input) input.value = target;
+                setTimeout(() => {
+                    downloadForm.dispatchEvent(new Event('submit', { cancelable: true }));
+                }, 350);
+            }
+        });
+
         downloadForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             const urlInput = document.getElementById('url');
@@ -677,11 +690,11 @@
                                         </div>
                                     </div>
                                     <div class="video-item-actions">
-                                        <a href="${vid.url}" download="${vid.filename || 'video.mp4'}" class="btn-video-download" onclick="handleSingleDownload(this, ${index})">
+                                        <a href="${vid.url}" target="_blank" rel="noopener noreferrer" download="${vid.filename || 'video.mp4'}" class="btn-video-download" onclick="handleSingleDownload(event, this, ${index})">
                                             ⬇️ ${t('download_single_btn')}
                                         </a>
                                         ${vid.raw_url ? `
-                                        <a href="${vid.raw_url}" target="_blank" rel="noopener noreferrer" class="btn-direct-link">
+                                        <a href="${vid.raw_url}" target="_blank" rel="noopener noreferrer" download="${vid.filename || 'video.mp4'}" class="btn-direct-link" onclick="event.stopPropagation()">
                                             ↗️ Abrir direto
                                         </a>` : ''}
                                     </div>
@@ -918,16 +931,23 @@
         }
 
         // HANDLER DE DOWNLOAD INDIVIDUAL COM LINK DIRETO (NATIVO NO CELULAR E PC)
-        function handleSingleDownload(btn, index) {
+        function handleSingleDownload(e, btn, index) {
+            if (e && typeof e.stopPropagation === 'function') {
+                e.stopPropagation(); // Impede que popunders de anúncios cancelem o download no celular
+            }
             const card = document.getElementById(`video-card-${index}`);
             if (card) card.classList.add('video-card-downloading');
             
-            btn.innerText = `⏳ ${t('connecting_btn')}`;
+            setTimeout(() => {
+                if (btn) btn.innerText = `⏳ ${t('connecting_btn')}`;
+            }, 30);
             
             setTimeout(() => {
-                btn.innerText = `✅ ${t('download_started_btn')}`;
-                btn.style.background = 'rgba(74, 222, 128, 0.2)';
-                btn.style.color = '#4ade80';
+                if (btn) {
+                    btn.innerText = `✅ ${t('download_started_btn')}`;
+                    btn.style.background = 'rgba(74, 222, 128, 0.2)';
+                    btn.style.color = '#4ade80';
+                }
                 if (card) {
                     card.classList.remove('video-card-downloading');
                     card.classList.add('video-card-done');
@@ -936,7 +956,7 @@
         }
 
         function downloadSingleVideo(e, index, btn) {
-            handleSingleDownload(btn, index);
+            handleSingleDownload(e, btn, index);
         }
 
         function triggerSimulatedAd(e, adTitle) {

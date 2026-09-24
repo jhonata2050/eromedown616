@@ -10,7 +10,7 @@ import urllib3
 import urllib3.util.connection as urllib3_cn
 from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, parse_device_info, resolve_country
 from social_downloader import process_social_url
-from multi_downloader import extract as multi_extract, detect_site
+from multi_downloader import extract as multi_extract, detect_site, resolve_luxuretv_media
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -129,7 +129,8 @@ def track_visitor():
 @app.route('/')
 def index():
     settings = get_cached_settings()  # Cache 60s — sem SQLite em cada request
-    return render_template('index.html', settings=settings)
+    initial_url = request.args.get('url', '').strip()
+    return render_template('index.html', settings=settings, initial_url=initial_url)
 
 @app.route('/social')
 def social_page():
@@ -234,9 +235,9 @@ Sitemap: https://eromedown.org/sitemap.xml
 @app.route('/api/version')
 def api_version():
     return jsonify({
-        'version': 'v3.3-jina-cf-bypass',
+        'version': 'v3.4-direct-media-stream-mobile-fix',
         'status': 'online',
-        'time': '2026-09-23T20:28:00-03:00',
+        'time': '2026-09-23T21:07:00-03:00',
         'supported_sites': ['erome', 'xvideos', 'pornhub', 'luxuretv']
     })
 
@@ -449,6 +450,18 @@ def proxy_download():
     if 'Range' in request.headers:
         headers['Range'] = request.headers['Range']
     
+    # Se for LuxureTV com cf-stream, resolve diretamente para o servidor de mídia (mediaX.luxuretv.com)
+    # eliminando 100% o bloqueio de Cloudflare Turnstile 403 em IPs de Datacenter/VPS
+    if 'cf-stream' in video_url or 'luxuretv' in video_url:
+        try:
+            resolved_url = resolve_luxuretv_media(video_url)
+            if resolved_url and resolved_url != video_url:
+                video_url = resolved_url
+                headers['Referer'] = 'https://luxuretv.com/'
+                headers['Origin'] = 'https://luxuretv.com'
+        except Exception as err:
+            print("Erro ao resolver luxuretv media:", err)
+
     try:
         if not skip_count:
             try:
@@ -463,6 +476,18 @@ def proxy_download():
         # Timeout estendido e streaming de alto throughput
         req = session.get(video_url, headers=headers, stream=True, verify=False, timeout=(10, 300))
         
+        # Fallback de segurança para LuxureTV caso a primeira tentativa tenha recebido 403
+        if req.status_code >= 400 and ('luxuretv' in video_url or 'cf-stream' in video_url):
+            try:
+                retry_url = resolve_luxuretv_media(video_url)
+                if retry_url and retry_url != video_url:
+                    video_url = retry_url
+                    headers['Referer'] = 'https://luxuretv.com/'
+                    headers['Origin'] = 'https://luxuretv.com'
+                    req = session.get(video_url, headers=headers, stream=True, verify=False, timeout=(10, 300))
+            except Exception:
+                pass
+
         if req.status_code >= 400:
             return f"Erro no servidor de mídia: status {req.status_code}", req.status_code
         
@@ -488,8 +513,8 @@ def proxy_download():
 
         encoded_filename = urllib.parse.quote(download_filename)
         
-        # application/octet-stream garante download direto no iOS Safari e Android Chrome sem tocar player inline
-        content_type = 'audio/mpeg' if ext == 'mp3' else 'application/octet-stream'
+        # video/mp4 garante compatibilidade nativa com Galeria/Player no Android e iOS Safari
+        content_type = 'audio/mpeg' if ext == 'mp3' else 'video/mp4'
         
         resp_headers = {
             'Content-Disposition': f'attachment; filename="{ascii_fallback}"; filename*=UTF-8\'\'{encoded_filename}',
@@ -806,6 +831,31 @@ def manifest_json():
         ]
     }
     return jsonify(manifest)
+
+@app.route('/<path:direct_url>')
+def direct_url_handler(direct_url):
+    # Proteção de rotas internas e estáticas
+    if direct_url.startswith(('static/', 'api/', 'ad_slot/', 'manifest.json', 'robots.txt', 'sitemap.xml', 'admin', 'get_video', 'get_videos', 'proxy_download', 'login', 'logout')):
+        abort(404)
+
+    raw = direct_url.strip()
+    if request.query_string:
+        raw += '?' + request.query_string.decode('utf-8', errors='ignore')
+
+    # Normalizar https:/ ou http:/ que alguns proxies/navegadores contraem
+    if raw.startswith('https:/') and not raw.startswith('https://'):
+        raw = 'https://' + raw[7:]
+    elif raw.startswith('http:/') and not raw.startswith('http://'):
+        raw = 'http://' + raw[6:]
+    elif not raw.startswith(('http://', 'https://')):
+        raw = 'https://' + raw
+
+    # Verificar se pertence aos sites suportados
+    supported_domains = ('erome.com', 'xvideos.com', 'pornhub.com', 'luxuretv.com')
+    if any(domain in raw.lower() for domain in supported_domains):
+        return redirect(f"/?url={urllib.parse.quote(raw, safe=':/?=&%')}")
+
+    abort(404)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, threaded=True)
