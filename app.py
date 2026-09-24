@@ -8,7 +8,7 @@ import time
 import requests
 import urllib3
 import urllib3.util.connection as urllib3_cn
-from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, parse_device_info, resolve_country
+from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, get_default_stats, parse_device_info, resolve_country
 from social_downloader import process_social_url
 from multi_downloader import extract as multi_extract, detect_site, resolve_luxuretv_media
 
@@ -304,10 +304,24 @@ def debug_luxuretv():
 
 @app.after_request
 def add_cache_headers(response):
+    try:
+        settings = get_cached_settings()
+        current_slug = settings.get('admin_slug', 'painel-gestao-9021')
+    except Exception:
+        current_slug = 'painel-gestao-9021'
+        
+    if (request.path.startswith('/sys-') or 
+        request.path == f'/{current_slug}' or 
+        request.path.startswith(f'/{current_slug}/') or 
+        flask_session.get('admin_logged') or 
+        request.path in ['/admin', '/admin/', '/administrator', '/wp-admin', '/cpanel']):
+        response.headers['Cache-Control'] = 'private, no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+
     content_type = response.headers.get('Content-Type', '')
     if 'text/html' in content_type:
-        # Permite Cloudflare cachear por 5 min (CDN), browser revalida a cada visita
-        # Isso elimina o custo de Flask+SQLite em cada requisição repetida
         response.headers['Cache-Control'] = 'public, s-maxage=300, max-age=0, must-revalidate'
         response.headers['Vary'] = 'Accept-Encoding'
     return response
@@ -590,28 +604,56 @@ def secret_admin_panel(secret_slug):
     if not ENABLE_ADMIN_PANEL:
         abort(404)
         
-    settings = get_settings()
-    current_slug = settings.get('admin_slug', 'painel-gestao-9021')
-    
-    # Se o slug digitado não for exatamente o configurado, finge que a página não existe
-    if secret_slug != current_slug:
-        abort(404)
+    try:
+        settings = get_settings()
+        current_slug = settings.get('admin_slug', 'painel-gestao-9021')
         
-    if not flask_session.get('admin_logged'):
-        turnstile_enabled = settings.get('turnstile_enabled', '1') == '1'
-        turnstile_site_key = settings.get('turnstile_site_key', '1x00000000000000000000AA')
-        return render_template('admin_login.html', 
-                               current_slug=current_slug,
-                               turnstile_enabled=turnstile_enabled,
-                               turnstile_site_key=turnstile_site_key)
+        # Se o slug digitado não for exatamente o configurado, finge que a página não existe
+        if secret_slug != current_slug:
+            abort(404)
+            
+        if not flask_session.get('admin_logged'):
+            turnstile_enabled = settings.get('turnstile_enabled', '1') == '1'
+            turnstile_site_key = settings.get('turnstile_site_key', '1x00000000000000000000AA')
+            return render_template('admin_login.html', 
+                                   current_slug=current_slug,
+                                   turnstile_enabled=turnstile_enabled,
+                                   turnstile_site_key=turnstile_site_key)
+            
+        if request.args.get('logout'):
+            flask_session.pop('admin_logged', None)
+            return redirect(f'/{current_slug}')
+            
+        try:
+            stats = get_stats()
+        except Exception as ex_st:
+            print(f"[ADMIN ERROR] Falha ao carregar get_stats: {ex_st}")
+            stats = get_default_stats()
+            
+        message = request.args.get('msg')
+        return render_template('admin.html', stats=stats, settings=settings, current_slug=current_slug, message=message)
         
-    if request.args.get('logout'):
-        flask_session.pop('admin_logged', None)
-        return redirect(f'/{current_slug}')
-        
-    stats = get_stats()
-    message = request.args.get('msg')
-    return render_template('admin.html', stats=stats, settings=settings, current_slug=current_slug, message=message)
+    except Exception as e:
+        import traceback
+        err_tb = traceback.format_exc()
+        print(f"[ADMIN CRITICAL] Erro no painel admin: {err_tb}")
+        return f"""
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head><meta charset="utf-8"><title>Recuperação do Painel Admin</title></head>
+        <body style="font-family:system-ui,sans-serif; background:#0f172a; color:#f8fafc; padding:30px; line-height:1.6;">
+            <div style="max-width:800px; margin:0 auto; background:#1e293b; padding:25px; border-radius:12px; border:1px solid #334155;">
+                <h2 style="color:#ef4444; margin-top:0;">⚠️ Recuperação do Painel Administrativo</h2>
+                <p>O painel encontrou uma falha de execução interna. Para sua conveniência, os detalhes técnicos foram capturados abaixo:</p>
+                <pre style="background:#090d16; color:#38bdf8; padding:15px; border-radius:8px; overflow-x:auto; font-size:13px;">{err_tb}</pre>
+                <div style="margin-top:20px; display:flex; gap:15px;">
+                    <a href="/{secret_slug}?logout=1" style="background:#4f46e5; color:#fff; text-decoration:none; padding:10px 18px; border-radius:8px; font-weight:600;">🚪 Sair e Limpar Sessão</a>
+                    <a href="/{secret_slug}" style="background:#334155; color:#fff; text-decoration:none; padding:10px 18px; border-radius:8px; font-weight:600;">🔄 Tentar Novamente</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        """, 200
 
 @app.route('/sys-auth-verify/<secret_slug>', methods=['POST'])
 def secret_admin_auth(secret_slug):
@@ -633,27 +675,27 @@ def secret_admin_auth(secret_slug):
     username = request.form.get('username', '').strip()
     password = request.form.get('password', '').strip()
 
-    # Validação do Cloudflare Turnstile
-    if turnstile_enabled and turnstile_secret_key:
+    # 1. Se as credenciais forem válidas (case-sensitive estrito), faz login imediato
+    if verify_admin_credentials(username, password):
+        reset_failed_attempts(client_ip)
+        flask_session['admin_logged'] = True
+        return redirect(f'/{current_slug}')
+
+    # 2. Se as credenciais falharem, valida Turnstile (se configurado com chaves reais)
+    if turnstile_enabled and turnstile_secret_key and not turnstile_secret_key.startswith('1x00000000'):
         turnstile_token = request.form.get('cf-turnstile-response', '').strip()
         if not turnstile_token:
             return render_template('admin_login.html', 
                                    current_slug=current_slug,
                                    turnstile_enabled=turnstile_enabled,
                                    turnstile_site_key=turnstile_site_key,
-                                   error='Por favor, complete a verificação do Cloudflare Turnstile.')
+                                   error='Por favor, complete a verificação de segurança.')
         if not verify_turnstile(turnstile_token, turnstile_secret_key, client_ip):
             return render_template('admin_login.html', 
                                    current_slug=current_slug,
                                    turnstile_enabled=turnstile_enabled,
                                    turnstile_site_key=turnstile_site_key,
-                                   error='Validação do Cloudflare Turnstile falhou. Tente novamente.')
-
-    # Se as credenciais estiverem corretas, autentica imediatamente e limpa qualquer bloqueio por tentativas
-    if verify_admin_credentials(username, password):
-        reset_failed_attempts(client_ip)
-        flask_session['admin_logged'] = True
-        return redirect(f'/{current_slug}')
+                                   error='Validação do desafio falhou. Tente novamente.')
 
     if blocked:
         return render_template('admin_login.html', 
@@ -681,45 +723,55 @@ def secret_admin_save(secret_slug):
     if secret_slug != current_slug or not flask_session.get('admin_logged'):
         abort(404)
         
-    section = request.form.get('section', 'ads')
-    
-    if section == 'ads':
-        fields = ['ad_top', 'ad_bottom', 'ad_left', 'ad_right', 'ad_popunder', 'ad_mobile']
-        for f in fields:
-            update_setting(f, request.form.get(f, ''))
-            
-        ads_enabled = '1' if request.form.get('ads_enabled') else '0'
-        update_setting('ads_enabled', ads_enabled)
-        invalidate_settings_cache()
-        return redirect(f'/{current_slug}?msg=Anúncios atualizados com sucesso!')
+    try:
+        section = request.form.get('section', 'ads')
         
-    elif section == 'security':
-        new_username = request.form.get('admin_username', '').strip()
-        new_slug = request.form.get('admin_slug', '').strip()
-        new_password = request.form.get('new_password', '').strip()
-        
-        turnstile_enabled = '1' if request.form.get('turnstile_enabled') else '0'
-        turnstile_site_key = request.form.get('turnstile_site_key', '').strip()
-        turnstile_secret_key = request.form.get('turnstile_secret_key', '').strip()
-        
-        update_setting('turnstile_enabled', turnstile_enabled)
-        if turnstile_site_key:
-            update_setting('turnstile_site_key', turnstile_site_key)
-        if turnstile_secret_key:
-            update_setting('turnstile_secret_key', turnstile_secret_key)
-        
-        if new_username:
-            update_setting('admin_username', new_username)
+        if section == 'ads':
+            fields = ['ad_top', 'ad_bottom', 'ad_left', 'ad_right', 'ad_popunder', 'ad_mobile']
+            for f in fields:
+                update_setting(f, request.form.get(f, ''))
+                
+            ads_enabled = '1' if request.form.get('ads_enabled') else '0'
+            update_setting('ads_enabled', ads_enabled)
+            invalidate_settings_cache()
+            msg = urllib.parse.quote('Anúncios atualizados com sucesso!')
+            return redirect(f'/{current_slug}?msg={msg}')
             
-        new_slug = re.sub(r'[^a-zA-Z0-9\-_]', '', new_slug)
-        if new_slug:
-            update_setting('admin_slug', new_slug)
-            current_slug = new_slug
+        elif section == 'security':
+            new_username = request.form.get('admin_username', '').strip()
+            new_slug = request.form.get('admin_slug', '').strip()
+            new_password = request.form.get('new_password', '').strip()
             
-        if new_password:
-            set_admin_password(new_password)
+            turnstile_enabled = '1' if request.form.get('turnstile_enabled') else '0'
+            turnstile_site_key = request.form.get('turnstile_site_key', '').strip()
+            turnstile_secret_key = request.form.get('turnstile_secret_key', '').strip()
             
-        return redirect(f'/{current_slug}?msg=Credenciais de segurança e rota privada atualizadas com sucesso!')
+            update_setting('turnstile_enabled', turnstile_enabled)
+            if turnstile_site_key:
+                update_setting('turnstile_site_key', turnstile_site_key)
+            if turnstile_secret_key:
+                update_setting('turnstile_secret_key', turnstile_secret_key)
+            
+            if new_username:
+                update_setting('admin_username', new_username)
+                
+            new_slug = re.sub(r'[^a-zA-Z0-9\-_]', '', new_slug)
+            if new_slug:
+                update_setting('admin_slug', new_slug)
+                current_slug = new_slug
+                
+            if new_password:
+                set_admin_password(new_password)
+                
+            invalidate_settings_cache()
+            msg = urllib.parse.quote('Credenciais de segurança e rota privada atualizadas com sucesso!')
+            return redirect(f'/{current_slug}?msg={msg}')
+    except Exception as e:
+        import traceback
+        print(f"[ADMIN SAVE ERROR] {e}")
+        traceback.print_exc()
+        msg = urllib.parse.quote(f'Erro ao salvar configurações: {str(e)}')
+        return redirect(f'/{current_slug}?msg={msg}')
         
     return redirect(f'/{current_slug}')
 
@@ -732,6 +784,37 @@ def secret_admin_api_stats(secret_slug):
     if secret_slug != current_slug or not flask_session.get('admin_logged'):
         abort(403)
     return jsonify(get_stats())
+
+@app.route('/api/sys_diag')
+def sys_diag():
+    import traceback, subprocess
+    diag = {}
+    try:
+        diag['git_commit'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+    except Exception as e:
+        diag['git_commit'] = str(e)
+    try:
+        import db
+        with db.get_db() as conn:
+            diag['tables'] = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+            diag['visits_cols'] = [r[1] for r in conn.execute("PRAGMA table_info(visits)").fetchall()]
+            diag['downloads_cols'] = [r[1] for r in conn.execute("PRAGMA table_info(downloads)").fetchall()]
+            diag['settings_keys'] = [r[0] for r in conn.execute("SELECT key FROM settings").fetchall()]
+    except Exception as e:
+        diag['db_error'] = str(e)
+    try:
+        s = get_stats()
+        diag['stats_status'] = 'OK'
+        diag['stats_keys_count'] = len(s)
+    except Exception as e:
+        diag['stats_status'] = 'ERROR'
+        diag['stats_error'] = traceback.format_exc()
+    try:
+        p = subprocess.run(['journalctl', '-u', 'eromedown', '-n', '50', '--no-pager'], capture_output=True, text=True, timeout=5)
+        diag['journalctl'] = p.stdout
+    except Exception as e:
+        diag['journalctl'] = str(e)
+    return jsonify(diag)
 
 
 # ================= AGGRESSIVE SEO, PAGESPEED & CACHING ================= #

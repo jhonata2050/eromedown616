@@ -125,9 +125,29 @@ def init_db():
         conn.commit()
 
 def get_settings():
-    with get_db() as conn:
-        rows = conn.execute('SELECT key, value FROM settings').fetchall()
-        return {r['key']: r['value'] for r in rows}
+    defaults = {
+        'admin_slug': 'painel-gestao-9021',
+        'admin_username': 'admin',
+        'admin_password_hash': '',
+        'ad_top': '',
+        'ad_bottom': '',
+        'ad_left': '',
+        'ad_right': '',
+        'ad_popunder': '',
+        'ad_mobile': '',
+        'ads_enabled': '1',
+        'turnstile_enabled': '1',
+        'turnstile_site_key': '1x00000000000000000000AA',
+        'turnstile_secret_key': '1x0000000000000000000000000000000AA'
+    }
+    try:
+        with get_db() as conn:
+            rows = conn.execute('SELECT key, value FROM settings').fetchall()
+            for r in rows:
+                defaults[r['key']] = r['value']
+    except Exception as e:
+        print(f"[DB ERROR] get_settings falhou: {e}")
+    return defaults
 
 def update_setting(key, value):
     with get_db() as conn:
@@ -333,286 +353,335 @@ def log_download(title, country, url=None, device='Desktop'):
     except Exception as e:
         print("Erro log_download:", e)
 
-def get_stats():
-    with get_db() as conn:
-        # Métricas de Visitas (Hoje, Ontem, 7 Dias, 30 Dias, Total)
-        total_visits = conn.execute('SELECT COUNT(*) FROM visits').fetchone()[0] or 0
-        today_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now")').fetchone()[0] or 0
-        yesterday_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now", "-1 day")').fetchone()[0] or 0
-        weekly_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
-        monthly_visits = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
-        
-        # Crescimento de Visitas Hoje vs Ontem (%)
-        if yesterday_visits > 0:
-            growth_visits = round(((today_visits - yesterday_visits) / yesterday_visits) * 100, 1)
-        else:
-            growth_visits = 100.0 if today_visits > 0 else 0.0
-            
-        # Usuários ativos nos últimos 5 minutos (tempo real)
-        active_now = conn.execute('SELECT COUNT(DISTINCT ip) FROM visits WHERE timestamp >= datetime("now", "-5 minutes")').fetchone()[0] or 0
-        if active_now == 0 and today_visits > 0:
-            active_now = 1
-            
-        # Métricas de Downloads (Hoje, Ontem, 7 Dias, 30 Dias, Total)
-        total_downloads = conn.execute('SELECT COUNT(*) FROM downloads').fetchone()[0] or 0
-        today_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now")').fetchone()[0] or 0
-        yesterday_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now", "-1 day")').fetchone()[0] or 0
-        weekly_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
-        monthly_downloads = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
-        
-        # Crescimento de Downloads Hoje vs Ontem (%)
-        if yesterday_downloads > 0:
-            growth_downloads = round(((today_downloads - yesterday_downloads) / yesterday_downloads) * 100, 1)
-        else:
-            growth_downloads = 100.0 if today_downloads > 0 else 0.0
-
-        # Taxa de Conversão Global e Hoje
-        conversion_rate_global = round((total_downloads / max(total_visits, 1) * 100), 1) if total_visits > 0 else 0.0
-        conversion_rate_today = round((today_downloads / max(today_visits, 1) * 100), 1) if today_visits > 0 else 0.0
-        
-        # Agregação Geográfica Rica para o Mapa Interativo e Ranking de Países
-        raw_visits_countries = conn.execute('SELECT country, COUNT(*) as count FROM visits GROUP BY country').fetchall()
-        raw_dl_countries = conn.execute('SELECT country, COUNT(*) as count FROM downloads GROUP BY country').fetchall()
-        
-        dl_map = {}
-        for r in raw_dl_countries:
-            c_code, _, _, _ = resolve_country(r['country'])
-            dl_map[c_code] = dl_map.get(c_code, 0) + r['count']
-            
-        countries_dict = {}
-        map_values = {}
-        regions_dict = {
-            'América Latina': {'visits': 0, 'downloads': 0},
-            'Europa': {'visits': 0, 'downloads': 0},
-            'América do Norte': {'visits': 0, 'downloads': 0},
-            'Ásia & Oceania': {'visits': 0, 'downloads': 0},
-            'África & Outros': {'visits': 0, 'downloads': 0}
-        }
-        
-        for r in raw_visits_countries:
-            c_code, c_name, c_flag, c_region = resolve_country(r['country'])
-            count = r['count']
-            
-            if c_code not in countries_dict:
-                countries_dict[c_code] = {
-                    'code': c_code,
-                    'name': c_name,
-                    'flag': c_flag,
-                    'region': c_region,
-                    'visits': 0,
-                    'downloads': dl_map.get(c_code, 0)
-                }
-            countries_dict[c_code]['visits'] += count
-            map_values[c_code] = map_values.get(c_code, 0) + count
-            
-            # Agrupar por região
-            reg_key = c_region
-            if 'Latina' in reg_key: reg_key = 'América Latina'
-            elif 'Europa' in reg_key: reg_key = 'Europa'
-            elif 'Norte' in reg_key: reg_key = 'América do Norte'
-            elif any(k in reg_key for k in ['Ásia', 'Oceania']): reg_key = 'Ásia & Oceania'
-            else: reg_key = 'África & Outros'
-            
-            regions_dict[reg_key]['visits'] += count
-            regions_dict[reg_key]['downloads'] += dl_map.get(c_code, 0)
-
-        # Se houver downloads em países sem visitas explícitas registradas
-        for c_code, dl_cnt in dl_map.items():
-            if c_code not in countries_dict:
-                _, c_name, c_flag, c_region = resolve_country(c_code)
-                countries_dict[c_code] = {
-                    'code': c_code,
-                    'name': c_name,
-                    'flag': c_flag,
-                    'region': c_region,
-                    'visits': dl_cnt,
-                    'downloads': dl_cnt
-                }
-                map_values[c_code] = dl_cnt
-
-        countries_list = list(countries_dict.values())
-        countries_list.sort(key=lambda x: x['visits'], reverse=True)
-        
-        # Calcular porcentagens e taxas de conversão por país
-        for c in countries_list:
-            c['code_lower'] = c['code'].lower()
-            c['visits_pct'] = round((c['visits'] / max(total_visits, 1)) * 100, 1)
-            c['downloads_pct'] = round((c['downloads'] / max(total_downloads, 1)) * 100, 1)
-            c['conversion'] = round((c['downloads'] / max(c['visits'], 1)) * 100, 1)
-
-        # Regiões formatadas com porcentagens
-        regions_list = []
-        for reg_name, reg_data in regions_dict.items():
-            pct = round((reg_data['visits'] / max(total_visits, 1)) * 100, 1)
-            regions_list.append({
-                'name': reg_name,
-                'visits': reg_data['visits'],
-                'downloads': reg_data['downloads'],
-                'pct': pct
-            })
-        regions_list.sort(key=lambda x: x['visits'], reverse=True)
-
-        # Séries Temporais dos Últimos 7 Dias (ApexCharts)
-        trend_7d = conn.execute('''
-            SELECT date(timestamp) as dt, strftime('%d/%m', timestamp) as dia, COUNT(*) as total
-            FROM visits
-            WHERE timestamp >= datetime('now', '-7 days')
-            GROUP BY dt
-            ORDER BY dt ASC
-        ''').fetchall()
-        
-        trend_dl_7d = conn.execute('''
-            SELECT date(timestamp) as dt, strftime('%d/%m', timestamp) as dia, COUNT(*) as total
-            FROM downloads
-            WHERE timestamp >= datetime('now', '-7 days')
-            GROUP BY dt
-            ORDER BY dt ASC
-        ''').fetchall()
-        
-        dl_7d_dict = {r['dia']: r['total'] for r in trend_dl_7d}
-        labels_7d = [r['dia'] for r in trend_7d]
-        visits_7d = [r['total'] for r in trend_7d]
-        downloads_7d = [dl_7d_dict.get(r['dia'], 0) for r in trend_7d]
-        
-        if len(labels_7d) < 2:
-            import datetime
-            today_dt = datetime.date.today()
-            labels_7d = [(today_dt - datetime.timedelta(days=i)).strftime('%d/%m') for i in reversed(range(7))]
-            visits_7d = [0]*6 + [today_visits]
-            downloads_7d = [0]*6 + [today_downloads]
-
-        # Séries Temporais das Últimas 24 Horas
-        trend_24h = conn.execute('''
-            SELECT strftime('%H:00', timestamp) as hora, COUNT(*) as total
-            FROM visits
-            WHERE timestamp >= datetime('now', '-24 hours')
-            GROUP BY hora
-            ORDER BY timestamp ASC
-        ''').fetchall()
-        
-        trend_dl_24h = conn.execute('''
-            SELECT strftime('%H:00', timestamp) as hora, COUNT(*) as total
-            FROM downloads
-            WHERE timestamp >= datetime('now', '-24 hours')
-            GROUP BY hora
-            ORDER BY timestamp ASC
-        ''').fetchall()
-        
-        dl_24h_dict = {r['hora']: r['total'] for r in trend_dl_24h}
-        labels_24h = [r['hora'] for r in trend_24h]
-        if not labels_24h:
-            labels_24h = ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"]
-            visits_24h = [0, 0, 0, today_visits, today_visits, today_visits]
-            downloads_24h = [0, 0, 0, today_downloads, today_downloads, today_downloads]
-        else:
-            visits_24h = [r['total'] for r in trend_24h]
-            downloads_24h = [dl_24h_dict.get(h, 0) for h in labels_24h]
-
-        # Distribuição por Dispositivo
-        device_rows = conn.execute('SELECT device, COUNT(*) as count FROM visits GROUP BY device').fetchall()
-        device_dict = {r['device']: r['count'] for r in device_rows}
-        mobile_cnt = device_dict.get('Mobile', 0)
-        desktop_cnt = device_dict.get('Desktop', 0)
-        tablet_cnt = device_dict.get('Tablet', 0)
-        
-        # Inteligência de visualização se colunas ainda novas
-        if mobile_cnt == 0 and desktop_cnt == 0:
-            mobile_cnt = int(total_visits * 0.78)
-            desktop_cnt = int(total_visits * 0.19)
-            tablet_cnt = max(0, total_visits - mobile_cnt - desktop_cnt)
-
-        device_stats = {
+def get_default_stats():
+    import datetime
+    today_dt = datetime.date.today()
+    labels_7d = [(today_dt - datetime.timedelta(days=i)).strftime('%d/%m') for i in reversed(range(7))]
+    return {
+        'total_visits': 0,
+        'today_visits': 0,
+        'yesterday_visits': 0,
+        'growth_visits': 0.0,
+        'weekly_visits': 0,
+        'monthly_visits': 0,
+        'active_now': 0,
+        'total_downloads': 0,
+        'today_downloads': 0,
+        'yesterday_downloads': 0,
+        'growth_downloads': 0.0,
+        'weekly_downloads': 0,
+        'monthly_downloads': 0,
+        'conversion_rate_global': 0.0,
+        'conversion_rate_today': 0.0,
+        'map_values': {},
+        'countries_list': [],
+        'regions_list': [],
+        'chart_7d': {
+            'labels': labels_7d,
+            'visits': [0] * 7,
+            'downloads': [0] * 7
+        },
+        'chart_24h': {
+            'labels': ["00:00", "04:00", "08:00", "12:00", "16:00", "20:00"],
+            'visits': [0] * 6,
+            'downloads': [0] * 6
+        },
+        'device_stats': {
             'labels': ['Mobile (Smartphones)', 'Desktop (Computador)', 'Tablet'],
-            'series': [mobile_cnt, desktop_cnt, tablet_cnt],
-            'mobile_pct': round((mobile_cnt / max(total_visits, 1)) * 100, 1),
-            'desktop_pct': round((desktop_cnt / max(total_visits, 1)) * 100, 1),
-            'tablet_pct': round((tablet_cnt / max(total_visits, 1)) * 100, 1)
-        }
+            'series': [0, 0, 0],
+            'mobile_pct': 0.0,
+            'desktop_pct': 0.0,
+            'tablet_pct': 0.0
+        },
+        'os_data': [],
+        'top_videos': [],
+        'recent_downloads': []
+    }
 
-        # Distribuição por Sistema Operacional
-        os_rows = conn.execute('SELECT os, COUNT(*) as count FROM visits GROUP BY os ORDER BY count DESC').fetchall()
-        os_data = [{'name': r['os'], 'count': r['count']} for r in os_rows if r['os'] and r['os'] != 'Outro']
-        if not os_data:
-            os_data = [
-                {'name': 'Android', 'count': int(total_visits * 0.62)},
-                {'name': 'iOS (iPhone)', 'count': int(total_visits * 0.22)},
-                {'name': 'Windows', 'count': int(total_visits * 0.14)},
-                {'name': 'macOS', 'count': int(total_visits * 0.02)}
-            ]
+def get_stats():
+    stats = get_default_stats()
+    try:
+        with get_db() as conn:
+            # 1. Visitas
+            try:
+                stats['total_visits'] = conn.execute('SELECT COUNT(*) FROM visits').fetchone()[0] or 0
+                stats['today_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now")').fetchone()[0] or 0
+                stats['yesterday_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now", "-1 day")').fetchone()[0] or 0
+                stats['weekly_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
+                stats['monthly_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
+                
+                if stats['yesterday_visits'] > 0:
+                    stats['growth_visits'] = round(((stats['today_visits'] - stats['yesterday_visits']) / stats['yesterday_visits']) * 100, 1)
+                else:
+                    stats['growth_visits'] = 100.0 if stats['today_visits'] > 0 else 0.0
+            except Exception as e:
+                print(f"[STATS ERROR] Erro visitas: {e}")
 
-        # Top Vídeos Mais Baixados
-        top_videos = conn.execute('''
-            SELECT title, COUNT(*) as count, MAX(url) as url, MAX(timestamp) as last_download
-            FROM downloads
-            GROUP BY title
-            ORDER BY count DESC
-            LIMIT 15
-        ''').fetchall()
+            # 2. Usuários ativos
+            try:
+                active_now = conn.execute('SELECT COUNT(DISTINCT ip) FROM visits WHERE timestamp >= datetime("now", "-5 minutes")').fetchone()[0] or 0
+                if active_now == 0 and stats['today_visits'] > 0:
+                    active_now = 1
+                stats['active_now'] = active_now
+            except Exception as e:
+                print(f"[STATS ERROR] Erro ativos: {e}")
+
+            # 3. Downloads
+            try:
+                stats['total_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads').fetchone()[0] or 0
+                stats['today_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now")').fetchone()[0] or 0
+                stats['yesterday_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now", "-1 day")').fetchone()[0] or 0
+                stats['weekly_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
+                stats['monthly_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
+                
+                if stats['yesterday_downloads'] > 0:
+                    stats['growth_downloads'] = round(((stats['today_downloads'] - stats['yesterday_downloads']) / stats['yesterday_downloads']) * 100, 1)
+                else:
+                    stats['growth_downloads'] = 100.0 if stats['today_downloads'] > 0 else 0.0
+            except Exception as e:
+                print(f"[STATS ERROR] Erro downloads: {e}")
+
+            # 4. Taxa de conversão
+            stats['conversion_rate_global'] = round((stats['total_downloads'] / max(stats['total_visits'], 1) * 100), 1) if stats['total_visits'] > 0 else 0.0
+            stats['conversion_rate_today'] = round((stats['today_downloads'] / max(stats['today_visits'], 1) * 100), 1) if stats['today_visits'] > 0 else 0.0
+
+            # 5. Distribuição Geográfica
+            try:
+                raw_visits_countries = conn.execute('SELECT country, COUNT(*) as count FROM visits GROUP BY country').fetchall()
+                raw_dl_countries = conn.execute('SELECT country, COUNT(*) as count FROM downloads GROUP BY country').fetchall()
+                
+                dl_map = {}
+                for r in raw_dl_countries:
+                    c_code, _, _, _ = resolve_country(r['country'])
+                    dl_map[c_code] = dl_map.get(c_code, 0) + r['count']
+                    
+                countries_dict = {}
+                map_values = {}
+                regions_dict = {
+                    'América Latina': {'visits': 0, 'downloads': 0},
+                    'Europa': {'visits': 0, 'downloads': 0},
+                    'América do Norte': {'visits': 0, 'downloads': 0},
+                    'Ásia & Oceania': {'visits': 0, 'downloads': 0},
+                    'África & Outros': {'visits': 0, 'downloads': 0}
+                }
+                
+                for r in raw_visits_countries:
+                    c_code, c_name, c_flag, c_region = resolve_country(r['country'])
+                    count = r['count']
+                    
+                    if c_code not in countries_dict:
+                        countries_dict[c_code] = {
+                            'code': c_code,
+                            'name': c_name,
+                            'flag': c_flag,
+                            'region': c_region,
+                            'visits': 0,
+                            'downloads': dl_map.get(c_code, 0)
+                        }
+                    countries_dict[c_code]['visits'] += count
+                    map_values[c_code] = map_values.get(c_code, 0) + count
+                    
+                    reg_key = c_region
+                    if 'Latina' in reg_key: reg_key = 'América Latina'
+                    elif 'Europa' in reg_key: reg_key = 'Europa'
+                    elif 'Norte' in reg_key: reg_key = 'América do Norte'
+                    elif any(k in reg_key for k in ['Ásia', 'Oceania']): reg_key = 'Ásia & Oceania'
+                    else: reg_key = 'África & Outros'
+                    
+                    regions_dict[reg_key]['visits'] += count
+                    regions_dict[reg_key]['downloads'] += dl_map.get(c_code, 0)
+
+                for c_code, dl_cnt in dl_map.items():
+                    if c_code not in countries_dict:
+                        _, c_name, c_flag, c_region = resolve_country(c_code)
+                        countries_dict[c_code] = {
+                            'code': c_code,
+                            'name': c_name,
+                            'flag': c_flag,
+                            'region': c_region,
+                            'visits': dl_cnt,
+                            'downloads': dl_cnt
+                        }
+                        map_values[c_code] = dl_cnt
+
+                countries_list = list(countries_dict.values())
+                countries_list.sort(key=lambda x: x['visits'], reverse=True)
+                
+                for c in countries_list:
+                    c['code_lower'] = c['code'].lower()
+                    c['visits_pct'] = round((c['visits'] / max(stats['total_visits'], 1)) * 100, 1)
+                    c['downloads_pct'] = round((c['downloads'] / max(stats['total_downloads'], 1)) * 100, 1)
+                    c['conversion'] = round((c['downloads'] / max(c['visits'], 1)) * 100, 1)
+
+                regions_list = []
+                for reg_name, reg_data in regions_dict.items():
+                    pct = round((reg_data['visits'] / max(stats['total_visits'], 1)) * 100, 1)
+                    regions_list.append({
+                        'name': reg_name,
+                        'visits': reg_data['visits'],
+                        'downloads': reg_data['downloads'],
+                        'pct': pct
+                    })
+                regions_list.sort(key=lambda x: x['visits'], reverse=True)
+
+                stats['map_values'] = map_values
+                stats['countries_list'] = countries_list
+                stats['regions_list'] = regions_list
+            except Exception as e:
+                print(f"[STATS ERROR] Erro geo: {e}")
+
+            # 6. Séries Temporais (7D e 24H)
+            try:
+                trend_7d = conn.execute('''
+                    SELECT date(timestamp) as dt, strftime('%d/%m', timestamp) as dia, COUNT(*) as total
+                    FROM visits
+                    WHERE timestamp >= datetime('now', '-7 days')
+                    GROUP BY dt
+                    ORDER BY dt ASC
+                ''').fetchall()
+                
+                trend_dl_7d = conn.execute('''
+                    SELECT date(timestamp) as dt, strftime('%d/%m', timestamp) as dia, COUNT(*) as total
+                    FROM downloads
+                    WHERE timestamp >= datetime('now', '-7 days')
+                    GROUP BY dt
+                    ORDER BY dt ASC
+                ''').fetchall()
+                
+                dl_7d_dict = {r['dia']: r['total'] for r in trend_dl_7d}
+                labels_7d = [r['dia'] for r in trend_7d]
+                visits_7d = [r['total'] for r in trend_7d]
+                downloads_7d = [dl_7d_dict.get(r['dia'], 0) for r in trend_7d]
+                
+                if len(labels_7d) >= 2:
+                    stats['chart_7d'] = {
+                        'labels': labels_7d,
+                        'visits': visits_7d,
+                        'downloads': downloads_7d
+                    }
+                else:
+                    import datetime
+                    today_dt = datetime.date.today()
+                    labels_7d = [(today_dt - datetime.timedelta(days=i)).strftime('%d/%m') for i in reversed(range(7))]
+                    stats['chart_7d'] = {
+                        'labels': labels_7d,
+                        'visits': [0]*6 + [stats['today_visits']],
+                        'downloads': [0]*6 + [stats['today_downloads']]
+                    }
+            except Exception as e:
+                print(f"[STATS ERROR] Erro trend 7d: {e}")
+
+            try:
+                trend_24h = conn.execute('''
+                    SELECT strftime('%H:00', timestamp) as hora, COUNT(*) as total
+                    FROM visits
+                    WHERE timestamp >= datetime('now', '-24 hours')
+                    GROUP BY hora
+                    ORDER BY timestamp ASC
+                ''').fetchall()
+                
+                trend_dl_24h = conn.execute('''
+                    SELECT strftime('%H:00', timestamp) as hora, COUNT(*) as total
+                    FROM downloads
+                    WHERE timestamp >= datetime('now', '-24 hours')
+                    GROUP BY hora
+                    ORDER BY timestamp ASC
+                ''').fetchall()
+                
+                dl_24h_dict = {r['hora']: r['total'] for r in trend_dl_24h}
+                labels_24h = [r['hora'] for r in trend_24h]
+                if labels_24h:
+                    visits_24h = [r['total'] for r in trend_24h]
+                    downloads_24h = [dl_24h_dict.get(h, 0) for h in labels_24h]
+                    stats['chart_24h'] = {
+                        'labels': labels_24h,
+                        'visits': visits_24h,
+                        'downloads': downloads_24h
+                    }
+            except Exception as e:
+                print(f"[STATS ERROR] Erro trend 24h: {e}")
+
+            # 7. Dispositivos e OS
+            try:
+                device_rows = conn.execute('SELECT device, COUNT(*) as count FROM visits GROUP BY device').fetchall()
+                device_dict = {r['device']: r['count'] for r in device_rows}
+                mobile_cnt = device_dict.get('Mobile', 0)
+                desktop_cnt = device_dict.get('Desktop', 0)
+                tablet_cnt = device_dict.get('Tablet', 0)
+                
+                if mobile_cnt == 0 and desktop_cnt == 0 and stats['total_visits'] > 0:
+                    mobile_cnt = int(stats['total_visits'] * 0.78)
+                    desktop_cnt = int(stats['total_visits'] * 0.19)
+                    tablet_cnt = max(0, stats['total_visits'] - mobile_cnt - desktop_cnt)
+
+                stats['device_stats'] = {
+                    'labels': ['Mobile (Smartphones)', 'Desktop (Computador)', 'Tablet'],
+                    'series': [mobile_cnt, desktop_cnt, tablet_cnt],
+                    'mobile_pct': round((mobile_cnt / max(stats['total_visits'], 1)) * 100, 1),
+                    'desktop_pct': round((desktop_cnt / max(stats['total_visits'], 1)) * 100, 1),
+                    'tablet_pct': round((tablet_cnt / max(stats['total_visits'], 1)) * 100, 1)
+                }
+            except Exception as e:
+                print(f"[STATS ERROR] Erro devices: {e}")
+
+            try:
+                os_rows = conn.execute('SELECT os, COUNT(*) as count FROM visits GROUP BY os ORDER BY count DESC').fetchall()
+                os_data = [{'name': r['os'], 'count': r['count']} for r in os_rows if r['os'] and r['os'] != 'Outro']
+                if not os_data and stats['total_visits'] > 0:
+                    os_data = [
+                        {'name': 'Android', 'count': int(stats['total_visits'] * 0.62)},
+                        {'name': 'iOS (iPhone)', 'count': int(stats['total_visits'] * 0.22)},
+                        {'name': 'Windows', 'count': int(stats['total_visits'] * 0.14)},
+                        {'name': 'macOS', 'count': int(stats['total_visits'] * 0.02)}
+                    ]
+                stats['os_data'] = os_data
+            except Exception as e:
+                print(f"[STATS ERROR] Erro os: {e}")
+
+            # 8. Top vídeos e downloads recentes
+            try:
+                top_videos = conn.execute('''
+                    SELECT title, COUNT(*) as count, MAX(url) as url, MAX(timestamp) as last_download
+                    FROM downloads
+                    GROUP BY title
+                    ORDER BY count DESC
+                    LIMIT 15
+                ''').fetchall()
+                
+                enriched_top_videos = []
+                for v in top_videos:
+                    v_dict = dict(v)
+                    v_dict['erome_url'] = extract_erome_url(v_dict.get('url'), v_dict.get('title'))
+                    enriched_top_videos.append(v_dict)
+                stats['top_videos'] = enriched_top_videos
+            except Exception as e:
+                print(f"[STATS ERROR] Erro top videos: {e}")
+
+            try:
+                recent_downloads = conn.execute('''
+                    SELECT id, title, country, url, timestamp, device
+                    FROM downloads 
+                    ORDER BY id DESC 
+                    LIMIT 20
+                ''').fetchall()
+
+                enriched_recent = []
+                for r in recent_downloads:
+                    item = dict(r)
+                    c_code, c_name, c_flag, _ = resolve_country(item.get('country'))
+                    item['country_code'] = c_code.lower()
+                    item['country_name'] = c_name
+                    item['country_flag'] = c_flag
+                    item['erome_url'] = extract_erome_url(item.get('url'), item.get('title'))
+                    enriched_recent.append(item)
+                stats['recent_downloads'] = enriched_recent
+            except Exception as e:
+                print(f"[STATS ERROR] Erro recent downloads: {e}")
+
+    except Exception as e:
+        print(f"[STATS CRITICAL] Falha geral em get_stats: {e}")
         
-        enriched_top_videos = []
-        for v in top_videos:
-            v_dict = dict(v)
-            v_dict['erome_url'] = extract_erome_url(v_dict.get('url'), v_dict.get('title'))
-            enriched_top_videos.append(v_dict)
-
-        # Downloads Recentes em Tempo Real
-        recent_downloads = conn.execute('''
-            SELECT id, title, country, url, timestamp, device
-            FROM downloads 
-            ORDER BY id DESC 
-            LIMIT 20
-        ''').fetchall()
-
-        # Enriquecer recent downloads com bandeira do país e link do Erome
-        enriched_recent = []
-        for r in recent_downloads:
-            item = dict(r)
-            c_code, c_name, c_flag, _ = resolve_country(item.get('country'))
-            item['country_code'] = c_code.lower()
-            item['country_name'] = c_name
-            item['country_flag'] = c_flag
-            item['erome_url'] = extract_erome_url(item.get('url'), item.get('title'))
-            enriched_recent.append(item)
-
-        return {
-            'total_visits': total_visits,
-            'today_visits': today_visits,
-            'yesterday_visits': yesterday_visits,
-            'growth_visits': growth_visits,
-            'weekly_visits': weekly_visits,
-            'monthly_visits': monthly_visits,
-            'active_now': active_now,
-            
-            'total_downloads': total_downloads,
-            'today_downloads': today_downloads,
-            'yesterday_downloads': yesterday_downloads,
-            'growth_downloads': growth_downloads,
-            'weekly_downloads': weekly_downloads,
-            'monthly_downloads': monthly_downloads,
-            
-            'conversion_rate_global': conversion_rate_global,
-            'conversion_rate_today': conversion_rate_today,
-            
-            'map_values': map_values,
-            'countries_list': countries_list,
-            'regions_list': regions_list,
-            
-            'chart_7d': {
-                'labels': labels_7d,
-                'visits': visits_7d,
-                'downloads': downloads_7d
-            },
-            'chart_24h': {
-                'labels': labels_24h,
-                'visits': visits_24h,
-                'downloads': downloads_24h
-            },
-            
-            'device_stats': device_stats,
-            'os_data': os_data,
-            'top_videos': enriched_top_videos,
-            'recent_downloads': enriched_recent
-        }
+    return stats
 
 if __name__ == '__main__':
     init_db()

@@ -837,15 +837,15 @@
                 <div class="kpi-card-pro cyan">
                     <div class="kpi-head">
                         <span class="kpi-title">Visitantes Hoje</span>
-                        <span class="kpi-badge {% if stats.growth_visits >= 0 %}up{% else %}neutral{% endif %}">
-                            {{ "+" if stats.growth_visits >= 0 else "" }}{{ stats.growth_visits }}% vs ontem
+                        <span class="kpi-badge {% if (stats.growth_visits or 0) >= 0 %}up{% else %}neutral{% endif %}">
+                            {{ "+" if (stats.growth_visits or 0) >= 0 else "" }}{{ stats.growth_visits or 0 }}% vs ontem
                         </span>
                     </div>
-                    <div class="kpi-value" id="kpi-today-visits">{{ "{:,}".format(stats.today_visits) }}</div>
+                    <div class="kpi-value" id="kpi-today-visits">{{ "{:,}".format(stats.today_visits or 0) }}</div>
                     <div class="kpi-sub">
-                        <span>👥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_visits) }}</strong></span>
+                        <span>👥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_visits or 0) }}</strong></span>
                         <span>•</span>
-                        <span>Total: <strong>{{ "{:,}".format(stats.total_visits) }}</strong></span>
+                        <span>Total: <strong>{{ "{:,}".format(stats.total_visits or 0) }}</strong></span>
                     </div>
                 </div>
 
@@ -853,15 +853,15 @@
                 <div class="kpi-card-pro emerald">
                     <div class="kpi-head">
                         <span class="kpi-title">Downloads Hoje</span>
-                        <span class="kpi-badge {% if stats.growth_downloads >= 0 %}up{% else %}neutral{% endif %}">
-                            {{ "+" if stats.growth_downloads >= 0 else "" }}{{ stats.growth_downloads }}% vs ontem
+                        <span class="kpi-badge {% if (stats.growth_downloads or 0) >= 0 %}up{% else %}neutral{% endif %}">
+                            {{ "+" if (stats.growth_downloads or 0) >= 0 else "" }}{{ stats.growth_downloads or 0 }}% vs ontem
                         </span>
                     </div>
-                    <div class="kpi-value" id="kpi-today-downloads">{{ "{:,}".format(stats.today_downloads) }}</div>
+                    <div class="kpi-value" id="kpi-today-downloads">{{ "{:,}".format(stats.today_downloads or 0) }}</div>
                     <div class="kpi-sub">
-                        <span>📥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_downloads) }}</strong></span>
+                        <span>📥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_downloads or 0) }}</strong></span>
                         <span>•</span>
-                        <span>Total: <strong>{{ "{:,}".format(stats.total_downloads) }}</strong></span>
+                        <span>Total: <strong>{{ "{:,}".format(stats.total_downloads or 0) }}</strong></span>
                     </div>
                 </div>
 
@@ -871,9 +871,9 @@
                         <span class="kpi-title">Taxa de Conversão</span>
                         <span class="kpi-badge neutral">Hoje</span>
                     </div>
-                    <div class="kpi-value" id="kpi-conversion-today">{{ stats.conversion_rate_today }}%</div>
+                    <div class="kpi-value" id="kpi-conversion-today">{{ stats.conversion_rate_today or 0.0 }}%</div>
                     <div class="kpi-sub">
-                        <span>Taxa Global: <strong>{{ stats.conversion_rate_global }}%</strong></span>
+                        <span>Taxa Global: <strong>{{ stats.conversion_rate_global or 0.0 }}%</strong></span>
                     </div>
                 </div>
 
@@ -883,9 +883,9 @@
                         <span class="kpi-title">Ciclo Semanal</span>
                         <span class="kpi-badge neutral">7 Dias</span>
                     </div>
-                    <div class="kpi-value">{{ "{:,}".format(stats.weekly_visits) }}</div>
+                    <div class="kpi-value">{{ "{:,}".format(stats.weekly_visits or 0) }}</div>
                     <div class="kpi-sub">
-                        <span>30 Dias: <strong>{{ "{:,}".format(stats.monthly_visits) }}</strong> acessos</span>
+                        <span>30 Dias: <strong>{{ "{:,}".format(stats.monthly_visits or 0) }}</strong> acessos</span>
                     </div>
                 </div>
 
@@ -1073,22 +1073,22 @@
                                         <span style="color: #64748b; font-size: 12px;">{{ c.region }}</span>
                                     </td>
                                     <td>
-                                        <strong style="color: #0f172a;">{{ "{:,}".format(c.visits) }}</strong>
+                                        <strong style="color: #0f172a;">{{ "{:,}".format(c.visits or 0) }}</strong>
                                     </td>
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 10px;">
                                             <div class="progress-track" style="flex: 1;">
-                                                <div class="progress-fill" style="width: {{ c.visits_pct }}%;"></div>
+                                                <div class="progress-fill" style="width: {{ c.visits_pct or 0.0 }}%;"></div>
                                             </div>
-                                            <span style="font-size: 12px; color: #4f46e5; font-weight: 700; width: 45px; text-align: right;">{{ c.visits_pct }}%</span>
+                                            <span style="font-size: 12px; color: #4f46e5; font-weight: 700; width: 45px; text-align: right;">{{ c.visits_pct or 0.0 }}%</span>
                                         </div>
                                     </td>
                                     <td>
-                                        <strong style="color: #059669;">{{ "{:,}".format(c.downloads) }}</strong>
+                                        <strong style="color: #059669;">{{ "{:,}".format(c.downloads or 0) }}</strong>
                                     </td>
                                     <td>
-                                        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: {% if c.conversion > 20 %}#059669{% elif c.conversion > 10 %}#4f46e5{% else %}#64748b{% endif %};">
-                                            {{ c.conversion }}%
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: {% if (c.conversion or 0) > 20 %}#059669{% elif (c.conversion or 0) > 10 %}#4f46e5{% else %}#64748b{% endif %};">
+                                            {{ c.conversion or 0.0 }}%
                                         </span>
                                     </td>
                                 </tr>
@@ -1220,7 +1220,7 @@
                             <span>Banner Topo (728x90 Leaderboard)</span>
                             <small>Aparece no topo de todas as páginas</small>
                         </label>
-                        <textarea class="code-textarea" name="ad_top" placeholder="Cole o código HTML/JS aqui...">{{ settings.ad_top }}</textarea>
+                        <textarea class="code-textarea" name="ad_top" placeholder="Cole o código HTML/JS aqui...">{{ settings.ad_top if settings and settings.ad_top else '' }}</textarea>
                     </div>
 
                     <div>
@@ -1228,7 +1228,7 @@
                             <span>Banner Abaixo da Busca (728x90)</span>
                             <small>Fica logo abaixo da caixa de download (alta conversão)</small>
                         </label>
-                        <textarea class="code-textarea" name="ad_bottom" placeholder="Cole o código HTML/JS aqui...">{{ settings.ad_bottom }}</textarea>
+                        <textarea class="code-textarea" name="ad_bottom" placeholder="Cole o código HTML/JS aqui...">{{ settings.ad_bottom if settings and settings.ad_bottom else '' }}</textarea>
                     </div>
 
                     <div>
@@ -1236,7 +1236,7 @@
                             <span>Banner Mobile (300x250 ou 320x50 - Opcional)</span>
                             <small>Exibido especificamente para usuários em celulares/smartphones (substitui o 728x90 no mobile)</small>
                         </label>
-                        <textarea class="code-textarea" name="ad_mobile" placeholder="Cole o código do banner mobile aqui (ex: 300x250 ou 320x50)...">{{ settings.ad_mobile }}</textarea>
+                        <textarea class="code-textarea" name="ad_mobile" placeholder="Cole o código do banner mobile aqui (ex: 300x250 ou 320x50)...">{{ settings.ad_mobile if settings and settings.ad_mobile else '' }}</textarea>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -1245,14 +1245,14 @@
                                 <span>Lateral Esquerda (160x600)</span>
                                 <small>Skyscraper Desktop</small>
                             </label>
-                            <textarea class="code-textarea" name="ad_left" placeholder="Cole o código aqui...">{{ settings.ad_left }}</textarea>
+                            <textarea class="code-textarea" name="ad_left" placeholder="Cole o código aqui...">{{ settings.ad_left if settings and settings.ad_left else '' }}</textarea>
                         </div>
                         <div>
                             <label class="input-label">
                                 <span>Lateral Direita (160x600)</span>
                                 <small>Skyscraper Desktop</small>
                             </label>
-                            <textarea class="code-textarea" name="ad_right" placeholder="Cole o código aqui...">{{ settings.ad_right }}</textarea>
+                            <textarea class="code-textarea" name="ad_right" placeholder="Cole o código aqui...">{{ settings.ad_right if settings and settings.ad_right else '' }}</textarea>
                         </div>
                     </div>
 
@@ -1261,7 +1261,7 @@
                             <span>Popunder / Script OnClick</span>
                             <small>Abre janela de anúncio ao clicar na tela (maior faturamento)</small>
                         </label>
-                        <textarea class="code-textarea" name="ad_popunder" placeholder="Cole o código do Popunder/OnClick aqui...">{{ settings.ad_popunder }}</textarea>
+                        <textarea class="code-textarea" name="ad_popunder" placeholder="Cole o código do Popunder/OnClick aqui...">{{ settings.ad_popunder if settings and settings.ad_popunder else '' }}</textarea>
                     </div>
 
                     <button type="submit" class="btn-primary">
