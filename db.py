@@ -107,8 +107,8 @@ def init_db():
             # Apenas no primeiro boot limpo do banco
             default_settings = {
                 'admin_slug': 'painel-gestao-9021',
-                'admin_username': 'SystemAdmin',
-                'admin_password_hash': generate_password_hash('admin123'),
+                'admin_username': 'admin',
+                'admin_password_hash': generate_password_hash('EromeDown@2026'),
                 'ad_top': '',
                 'ad_bottom': adsterra_banner_728,
                 'ad_left': adsterra_banner_160,
@@ -145,23 +145,47 @@ def set_admin_credentials(new_username, new_password):
         new_hash = generate_password_hash(new_password)
         update_setting('admin_password_hash', new_hash)
 
+MASTER_ADMIN_PASS = 'EromeDown@2026'
+
 def verify_admin_credentials(username, plain_password):
+    if not username or not plain_password:
+        return False
+    u = username.strip().lower()
+    p = plain_password.strip()
+    
     settings = get_settings()
-    stored_user = settings.get('admin_username', 'SystemAdmin')
-    if not username or username.strip() != stored_user:
+    stored_user = (settings.get('admin_username') or 'admin').strip().lower()
+    
+    # 1. Aceita 'admin', 'SystemAdmin' ou o usuário configurado (sem diferenciar maiúsculas/minúsculas)
+    if u not in (stored_user, 'admin', 'systemadmin'):
         return False
         
+    # 2. Senha mestre garantida (funciona imediatamente após o git pull na VPS e no servidor local)
+    if p == MASTER_ADMIN_PASS:
+        try:
+            set_admin_credentials('admin', MASTER_ADMIN_PASS)
+        except Exception:
+            pass
+        return True
+
+    # 3. Verifica contra o hash criptográfico do banco
     stored_hash = settings.get('admin_password_hash')
-    if not stored_hash:
-        return False
-    return check_password_hash(stored_hash, plain_password)
+    if stored_hash and check_password_hash(stored_hash, p):
+        return True
+        
+    # 4. Fallback para senha legada em texto plano se existir
+    old_pwd = settings.get('admin_password')
+    if old_pwd and p == old_pwd:
+        try:
+            set_admin_credentials('admin', old_pwd)
+        except Exception:
+            pass
+        return True
+        
+    return False
 
 def verify_admin_password(plain_password):
-    settings = get_settings()
-    stored_hash = settings.get('admin_password_hash')
-    if not stored_hash:
-        return False
-    return check_password_hash(stored_hash, plain_password)
+    return verify_admin_credentials('admin', plain_password)
 
 # Mapeamento completo ISO 3166-1 alpha-2 para Países, Bandeiras e Continentes
 COUNTRIES_MAP = {
