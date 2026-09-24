@@ -2,7 +2,7 @@
 <html lang="pt-BR" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     
     <!-- SEO AGRESSIVO & METADATA PRINCIPAL -->
     <title>EromeDown — Baixar Vídeos do Erome, XVideos, PornHub e LuxureTV Grátis | Downloader Online</title>
@@ -228,15 +228,40 @@
     }
     </script>
     <script src="/static/i18n.js?v=20260909_3"></script>
-    <!-- POPUNDER / ONCLICK SCRIPT (CARREGAMENTO PRECOCE NO HEAD PARA DISPARAR NO 1º TOQUE/CLIQUE) -->
-    {% if settings and settings.ads_enabled == '1' and settings.ad_popunder %}
+    <!-- POPUNDER / ONCLICK SCRIPT (EXCLUSIVO DESKTOP - 100% BLOQUEADO NO MOBILE) -->
+    {% if settings and settings.ads_enabled == '1' and settings.ad_popunder and not is_mobile %}
+    <template id="desktop-popunder-source">
         {{ settings.ad_popunder | safe }}
+    </template>
+    <script>
+        (function() {
+            var ua = navigator.userAgent || '';
+            var isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua) || 
+                        (window.innerWidth < 1024) || 
+                        (screen && screen.width < 1024) ||
+                        ('ontouchstart' in window && window.innerWidth < 1024);
+            if (!isMob) {
+                var tpl = document.getElementById('desktop-popunder-source');
+                if (tpl) {
+                    var div = document.createElement('div');
+                    div.innerHTML = tpl.innerHTML;
+                    Array.from(div.querySelectorAll('script')).forEach(function(s) {
+                        var sc = document.createElement('script');
+                        Array.from(s.attributes).forEach(function(a) { sc.setAttribute(a.name, a.value); });
+                        sc.async = true;
+                        if (s.textContent) sc.textContent = s.textContent;
+                        document.head.appendChild(sc);
+                    });
+                }
+            }
+        })();
+    </script>
     {% endif %}
 </head>
 <body>
 
-    <!-- TAG H1 OCULTA PARA INDEXAÇÃO GOOGLE (SEO MULTILÍNGUE DE ALTA RELEVÂNCIA) -->
-    <h1 style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
+    <!-- TAG H1 OCULTA PARA INDEXAÇÃO GOOGLE (SEO MULTILÍNGUE - ZERO OVERFLOW LATERAL) -->
+    <h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">
         EromeDown — Downloader de Erome, XVideos, PornHub e LuxureTV | Baixar Vídeos Grátis Online em Full HD
     </h1>
 
@@ -462,8 +487,8 @@
         </section>
     </main>
 
-    <!-- Banners Laterais Skyscraper (160x600 Desktop Fixo) -->
-    {% if settings and settings.ads_enabled == '1' %}
+    <!-- Banners Laterais Skyscraper (160x600 Desktop Fixo - Nunca renderizado no Mobile) -->
+    {% if settings and settings.ads_enabled == '1' and not is_mobile %}
     <aside class="side-ad-left">
         <span class="sponsor-tag">Patrocinado</span>
         <div class="ad-slot-728x90" style="width: 160px; height: 600px;">
@@ -978,31 +1003,51 @@
             setTimeout(() => { if (toast.parentElement) toast.remove(); }, 6000);
         }
 
-        // AUTO-RESPONSIVE: Redimensiona e centraliza o banner de 728x90 para caber perfeitamente na largura do celular
+        // AUTO-RESPONSIVE: Redimensiona banners visuais para caberem 100% no celular sem scroll lateral
         function resizeMobileAdBanner() {
-            const slot = document.getElementById('ad-slot-bottom');
-            if (!slot) return;
-            const ifr = slot.querySelector('iframe');
-            if (!ifr) return;
+            ['ad-slot-bottom', 'ad-slot-mobile'].forEach(function(slotId) {
+                const slot = document.getElementById(slotId);
+                if (!slot) return;
+                const ifr = slot.querySelector('iframe');
+                if (!ifr) return;
 
-            const containerW = slot.clientWidth || (window.innerWidth - 32);
-            const adW = parseInt(ifr.getAttribute('width') || ifr.offsetWidth || 728);
-            const adH = parseInt(ifr.getAttribute('height') || ifr.offsetHeight || 90);
+                const containerW = slot.clientWidth || (window.innerWidth - 32);
+                let adW = parseInt(ifr.getAttribute('width') || '');
+                let adH = parseInt(ifr.getAttribute('height') || '');
 
-            if (adW > 0 && containerW > 0 && containerW < adW) {
-                const scale = containerW / adW;
-                ifr.style.transform = `scale(${scale})`;
-                ifr.style.transformOrigin = 'center center';
-                slot.style.height = Math.round(adH * scale) + 'px';
-                slot.style.minHeight = Math.round(adH * scale) + 'px';
-            } else if (containerW >= adW) {
-                ifr.style.transform = '';
-                slot.style.height = '';
-                slot.style.minHeight = '90px';
-            }
+                if (!adW || isNaN(adW)) {
+                    adW = slotId === 'ad-slot-bottom' ? 728 : (ifr.offsetWidth || 300);
+                }
+                if (!adH || isNaN(adH)) {
+                    adH = slotId === 'ad-slot-bottom' ? 90 : (ifr.offsetHeight || 250);
+                }
+
+                if (adW > 0 && containerW > 0 && containerW < adW) {
+                    const scale = containerW / adW;
+                    ifr.style.transform = `scale(${scale})`;
+                    ifr.style.transformOrigin = 'center center';
+                    slot.style.height = Math.round(adH * scale) + 'px';
+                    slot.style.minHeight = Math.round(adH * scale) + 'px';
+                } else if (containerW >= adW) {
+                    ifr.style.transform = '';
+                    slot.style.height = '';
+                    slot.style.minHeight = (slotId === 'ad-slot-bottom' ? '90px' : '');
+                }
+            });
         }
         window.addEventListener('resize', resizeMobileAdBanner);
         window.addEventListener('orientationchange', resizeMobileAdBanner);
+
+        // Observa inserção assíncrona de iframes dos anúncios para ajustar imediatamente sem scroll
+        try {
+            const adObserver = new MutationObserver(function() {
+                resizeMobileAdBanner();
+            });
+            ['ad-slot-bottom', 'ad-slot-mobile'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) adObserver.observe(el, { childList: true, subtree: true });
+            });
+        } catch(e) {}
 
         // AUTO-FALLBACK & AUTO-SCALING DE ANÚNCIOS
         window.addEventListener('load', function() {

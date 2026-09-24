@@ -130,7 +130,18 @@ def track_visitor():
 def index():
     settings = get_cached_settings()  # Cache 60s — sem SQLite em cada request
     initial_url = request.args.get('url', '').strip()
-    return render_template('index.html', settings=settings, initial_url=initial_url)
+    ua = request.headers.get('User-Agent', '')
+    device, os_name, browser = parse_device_info(ua)
+    is_mobile = device in ('Mobile', 'Tablet')
+    
+    # No mobile: APENAS anúncios visuais (banners), ZERO cliques automáticos ou popunders
+    if is_mobile and settings:
+        settings = dict(settings)
+        settings['ad_popunder'] = ''
+        settings['ad_left'] = ''
+        settings['ad_right'] = ''
+        
+    return render_template('index.html', settings=settings, initial_url=initial_url, is_mobile=is_mobile)
 
 @app.route('/social')
 def social_page():

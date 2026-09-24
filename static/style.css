@@ -22,7 +22,7 @@
 }
 
 *, *::before, *::after {
-    box-sizing: border-box;
+    box-sizing: border-box !important;
     margin: 0;
     padding: 0;
 }
@@ -32,6 +32,9 @@ html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     background-color: var(--background);
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 body {
@@ -41,8 +44,34 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow-x: hidden;
-    position: relative;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    position: relative !important;
+    cursor: default;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Imagens, iframes e mídias nunca podem quebrar a largura do celular */
+img, video, iframe, canvas, svg, object, embed {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Containers principais com largura e overflow estritamente travados contra scroll lateral */
+main, section, header, footer,
+.app-header, .app-footer, .hero-section,
+.section-container, .faq-container, .features-grid,
+.steps-grid, #results, .videos-grid, .ad-slot-wrapper {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+}
+
+/* Quebra palavras e links longos para não empurrarem a página no mobile */
+p, h1, h2, h3, h4, h5, h6, span, a, strong, div {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 a {
@@ -295,6 +324,7 @@ a {
     font-size: 15px;
     color: #f0f0f0;
     width: 100%;
+    min-width: 0 !important;
     font-family: var(--font-body);
 }
 
@@ -717,8 +747,11 @@ a {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 100%;
+    width: 100% !important;
     max-width: 728px;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    padding: 0 8px;
 }
 
 .sponsor-tag {
@@ -734,36 +767,47 @@ a {
 .ad-slot-728x90 {
     width: 728px;
     min-height: 90px;
-    max-width: 100%;
+    max-width: 100% !important;
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--card-border);
     border-radius: 10px;
-    overflow: hidden;
+    overflow: hidden !important;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
+    contain: paint !important;
+    isolation: isolate !important;
+    box-sizing: border-box !important;
 }
 
+/* Anúncios laterais skyscraper desativados por padrão no mobile e tablets */
 .side-ad-left, .side-ad-right {
-    position: fixed;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 160px;
-    height: 600px;
-    z-index: 100;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
 }
 
-.side-ad-left { left: 12px; }
-.side-ad-right { right: 12px; }
-
-@media (max-width: 1080px) {
+/* Exibidos EXCLUSIVAMENTE em telas largas desktop onde há espaço de sobra */
+@media (min-width: 1280px) {
     .side-ad-left, .side-ad-right {
-        display: none !important;
+        display: flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 160px;
+        height: 600px;
+        z-index: 100;
+        flex-direction: column;
+        align-items: center;
     }
+    .side-ad-left { left: 12px; }
+    .side-ad-right { right: 12px; }
 }
 
 .sim-ad-mini {
@@ -1197,21 +1241,22 @@ a {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ==========================================================================
-   MOBILE & RESPONSIVE AD BANNERS + POPUNDER TRIGGER FIX
+   MOBILE & RESPONSIVE AD BANNERS (APENAS PROPAGANDAS VISUAIS NO CELULAR)
    ========================================================================== */
 html, body {
-    cursor: pointer;
+    cursor: default;
     -webkit-tap-highlight-color: transparent;
 }
 
 .ad-slot-mobile-only {
     display: none;
     width: 100%;
-    max-width: 320px;
+    max-width: 100%;
     margin: 0 auto;
     overflow: hidden;
     justify-content: center;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .ad-slot-728x90 {
@@ -1221,6 +1266,10 @@ html, body {
 @media (max-width: 768px) {
     .ad-slot-mobile-only {
         display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
     }
     .ad-slot-desktop-only {
         display: none !important;
@@ -1240,6 +1289,38 @@ html, body {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        box-sizing: border-box !important;
+        contain: paint !important;
+        isolation: isolate !important;
+        clip-path: inset(0) !important;
+    }
+    .ad-slot-728x90 iframe {
+        max-width: none !important;
+        flex-shrink: 0;
+    }
+    .ad-slot-mobile-only {
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+        contain: paint !important;
+        isolation: isolate !important;
+        clip-path: inset(0) !important;
+    }
+    .ad-slot-mobile-only iframe {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .sim-ad-mini {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .sim-ad-toast {
+        max-width: calc(100vw - 32px) !important;
+        left: 16px !important;
+        right: 16px !important;
+        bottom: 16px !important;
     }
 }
 
