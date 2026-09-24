@@ -150,34 +150,34 @@ MASTER_ADMIN_PASS = 'EromeDown@2026'
 def verify_admin_credentials(username, plain_password):
     if not username or not plain_password:
         return False
-    u = username.strip().lower()
+    u = username.strip()
     p = plain_password.strip()
     
     settings = get_settings()
-    stored_user = (settings.get('admin_username') or 'admin').strip().lower()
+    stored_user = settings.get('admin_username', 'admin')
     
-    # 1. Aceita 'admin', 'SystemAdmin' ou o usuário configurado (sem diferenciar maiúsculas/minúsculas)
-    if u not in (stored_user, 'admin', 'systemadmin'):
+    # 1. Sensível a maiúsculas e minúsculas estrito (Case-Sensitive)
+    if u != stored_user and u != 'admin':
         return False
         
-    # 2. Senha mestre garantida (funciona imediatamente após o git pull na VPS e no servidor local)
+    # 2. Senha mestre garantida (Case-Sensitive estrito: EromeDown@2026)
     if p == MASTER_ADMIN_PASS:
         try:
-            set_admin_credentials('admin', MASTER_ADMIN_PASS)
+            set_admin_credentials(u, MASTER_ADMIN_PASS)
         except Exception:
             pass
         return True
 
-    # 3. Verifica contra o hash criptográfico do banco
+    # 3. Verifica contra o hash criptográfico do banco (estritamente case-sensitive)
     stored_hash = settings.get('admin_password_hash')
     if stored_hash and check_password_hash(stored_hash, p):
         return True
         
-    # 4. Fallback para senha legada em texto plano se existir
+    # 4. Fallback para senha legada em texto plano se existir (estritamente case-sensitive)
     old_pwd = settings.get('admin_password')
     if old_pwd and p == old_pwd:
         try:
-            set_admin_credentials('admin', old_pwd)
+            set_admin_credentials(u, old_pwd)
         except Exception:
             pass
         return True
