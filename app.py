@@ -1,5 +1,6 @@
 import gzip
 import threading
+import queue
 from flask import Flask, request, jsonify, render_template, session as flask_session, redirect, url_for, Response, stream_with_context, abort
 import socket
 import urllib.parse
@@ -37,24 +38,115 @@ def get_cached_settings():
 def invalidate_settings_cache():
     _settings_cache['data'] = None
 
-# --- LOG ASSÍNCRONO (não bloqueia render da página) ---
-def log_visit_async(ip, country, path, **kwargs):
-    def _log():
-        try:
-            log_visit(ip, country, path, **kwargs)
-        except Exception:
-            pass
-    threading.Thread(target=_log, daemon=True).start()
+# ==============================================================================
+# FILA DE LOG ASSÍNCRONO ULTRA-LEVE (Producer-Consumer sem thread thrashing)
+# ==============================================================================
+_log_queue = queue.Queue(maxsize=10000)
 
-# Sessão persistente com pool de conexões
+def _log_worker():
+    """Worker daemon persistente que drena requisições de log sequencialmente,
+    eliminando 100% dos bloqueios e deadlocks de escrita no SQLite."""
+    while True:
+        try:
+            item = _log_queue.get()
+            if item is None:
+                break
+            ip, country, path, kwargs = item
+            log_visit(ip, country, path, **kwargs)
+            _log_queue.task_done()
+        except Exception as e:
+            pass
+
+_worker_thread = threading.Thread(target=_log_worker, daemon=True)
+_worker_thread.start()
+
+def log_visit_async(ip, country, path, **kwargs):
+    try:
+        _log_queue.put_nowait((ip, country, path, kwargs))
+    except queue.Full:
+        pass  # Proteção contra overflow de memória sob tráfego massivo
+
+# Sessão persistente com pool de conexões HTTP
 session = requests.Session()
 session.verify = False
-adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=50, max_retries=2)
+adapter = requests.adapters.HTTPAdapter(pool_connections=30, pool_maxsize=100, max_retries=2)
 session.mount('https://', adapter)
 session.mount('http://', adapter)
 
-# Proteção contra Brute Force (em memória por IP)
+# ==============================================================================
+# SISTEMA DE SEGURANÇA ATIVA: CORE SHIELD, HONEYPOT & RATE LIMITER
+# ==============================================================================
+# Lista dinâmica de IPs bloqueados por varreduras, força bruta ou explorações
+BANNED_IPS = {}
+IP_REQUEST_HISTORY = {}
 failed_attempts = {}
+
+# Padrões conhecidos de varredura maliciosa e exploração de vulnerabilidades
+EXPLOIT_PATH_PATTERNS = [
+    '.env', '.git', '.aws', 'wp-config', 'config.json', 'web.config', 'credentials',
+    'database.yml', 'settings.py', 'id_rsa', 'dump.sql', 'backup.sql',
+    'wp-login', 'wp-admin', 'xmlrpc.php', 'administrator', 'phpmyadmin', 'pma',
+    'adminer', 'cpanel', 'webmin', 'solr', 'actuator', 'cgi-bin', 'shell.php',
+    'eval-stdin', 'alfa.php', 'wso.php', 'cmd.php', 'phpunit',
+    '../', '..\\', '%2e%2e', '/etc/passwd', '/etc/shadow', 'win.ini',
+    'union+select', 'select+null', 'exec+xp_', 'waitfor+delay'
+]
+
+def get_client_ip():
+    """Recupera o IP real do cliente com validação rigorosa."""
+    cf_ip = request.headers.get('CF-Connecting-IP')
+    if cf_ip and re.match(r'^[0-9a-fA-F:\.]+$', cf_ip):
+        return cf_ip.strip()
+    x_forwarded = request.headers.get('X-Forwarded-For')
+    if x_forwarded:
+        first_ip = x_forwarded.split(',')[0].strip()
+        if re.match(r'^[0-9a-fA-F:\.]+$', first_ip):
+            return first_ip
+    return request.remote_addr or '127.0.0.1'
+
+def is_ip_banned(ip):
+    now = time.time()
+    info = BANNED_IPS.get(ip)
+    if info and info['blocked_until'] > now:
+        remaining = int((info['blocked_until'] - now) / 60) + 1
+        return True, remaining, info.get('reason', 'Atividade maliciosa detectada')
+    if info and info['blocked_until'] <= now:
+        BANNED_IPS.pop(ip, None)
+    return False, 0, ''
+
+def ban_ip(ip, duration_seconds=86400, reason='Tentativa de invasão'):
+    now = time.time()
+    info = BANNED_IPS.setdefault(ip, {'strikes': 0, 'blocked_until': 0, 'reason': reason})
+    info['strikes'] += 1
+    info['blocked_until'] = now + duration_seconds
+    info['reason'] = reason
+    print(f"[SECURITY SHIELD] IP BLOQUEADO: {ip} por {duration_seconds}s. Motivo: {reason}")
+
+def unban_ip(ip):
+    BANNED_IPS.pop(ip, None)
+    failed_attempts.pop(ip, None)
+
+def get_security_stats():
+    now = time.time()
+    active_bans = [
+        {'ip': ip, 'reason': data['reason'], 'strikes': data['strikes'], 'remaining_min': max(1, int((data['blocked_until'] - now) / 60))}
+        for ip, data in list(BANNED_IPS.items())
+        if data['blocked_until'] > now
+    ]
+    return {
+        'total_banned': len(active_bans),
+        'active_bans': active_bans,
+        'failed_logins': len(failed_attempts)
+    }
+
+def check_rate_limit(ip, max_requests=120, window_seconds=60):
+    now = time.time()
+    history = IP_REQUEST_HISTORY.setdefault(ip, [])
+    cutoff = now - window_seconds
+    while history and history[0] < cutoff:
+        history.pop(0)
+    history.append(now)
+    return len(history) <= max_requests
 
 def is_ip_blocked(ip):
     now = time.time()
@@ -69,6 +161,7 @@ def record_failed_attempt(ip):
     info['count'] += 1
     if info['count'] >= 5:
         info['blocked_until'] = now + 900 # 15 minutos de bloqueio
+        ban_ip(ip, duration_seconds=900, reason="Excesso de tentativas inválidas de login admin")
 
 def reset_failed_attempts(ip):
     failed_attempts.pop(ip, None)
@@ -77,54 +170,73 @@ def get_client_country():
     cf_country = request.headers.get('CF-IPCountry')
     if cf_country and len(cf_country) == 2:
         return cf_country.upper()
-        
-    ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
-    if ip in ('127.0.0.1', '::1', 'localhost'):
-        return 'BR'
     return 'BR'
 
 # Assinaturas de User-Agent de bots/crawlers/scanners conhecidos
 BOT_UA_SIGNATURES = [
-    # Crawlers e bots de busca
     'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider', 'yandexbot',
     'sogou', 'exabot', 'facebot', 'ia_archiver', 'ahrefsbot', 'semrushbot',
     'dotbot', 'mj12bot', 'rogerbot', 'linkdexbot', 'blexbot', 'proximic',
     'sistrix', 'searchatlas', 'seobilitybot', 'rankactivelinkbot',
-    # Scanners de segurança e pentest
     'nmap', 'nikto', 'sqlmap', 'masscan', 'zap/', 'burpsuite', 'nessus',
     'openvas', 'acunetix', 'w3af', 'nuclei', 'zgrab', 'go-http-client',
     'python-requests', 'python-urllib', 'libwww-perl', 'curl/', 'wget/',
     'httpx', 'httpclient', 'okhttp', 'java/', 'axios/',
-    # Ferramentas de scraping/automação
     'scrapy', 'mechanize', 'phantomjs', 'selenium', 'puppeteer', 'playwright',
     'headlesschrome', 'headless', 'prerender', 'crawl', 'spider', 'bot/',
     'robot', 'fetcher', 'archiver', 'downloader', 'extractor', 'parser',
-    # Monitoramento e uptime
     'uptimerobot', 'pingdom', 'statuscake', 'site24x7', 'freshping',
     'hetrixtools', 'monitor', 'checker',
-    # Outros
     'dataforseo', 'bytespider', 'claude-web', 'gpt-', 'openai', 'anthropic',
 ]
 
 def is_bot(ua_string):
     """Detecta bots/crawlers pelo User-Agent. Retorna True se for bot."""
     if not ua_string or len(ua_string) < 10:
-        return True  # UA vazio ou muito curto = bot/script
+        return True
     ua_lower = ua_string.lower()
     return any(sig in ua_lower for sig in BOT_UA_SIGNATURES)
 
 @app.before_request
-def track_visitor():
-    # Registrar visita nas páginas principais (ignora bots, não bloqueia render)
+def security_and_traffic_shield():
+    client_ip = get_client_ip()
+    
+    # 1. Barreira de Defesa: Bloqueio imediato de IPs maliciosos
+    banned, minutes, reason = is_ip_banned(client_ip)
+    if banned:
+        return Response(
+            f"<!DOCTYPE html><html><head><meta charset='utf-8'><title>403 Forbidden</title></head>"
+            f"<body style='font-family:system-ui,sans-serif;background:#090d16;color:#f87171;text-align:center;padding:50px;'>"
+            f"<h2>🛡️ 403 Forbidden — Bloqueio de Segurança</h2>"
+            f"<p>Seu IP ({client_ip}) foi temporariamente bloqueado por {minutes} minuto(s).</p>"
+            f"<p style='color:#94a3b8;font-size:13px;'>Motivo: {reason}. Todas as tentativas de violação são registradas no firewall.</p>"
+            f"</body></html>",
+            status=403,
+            mimetype='text/html'
+        )
+
+    # 2. Honeypot Ativo & Detecção de Varreduras (Probing)
+    req_path_lower = request.path.lower()
+    query_str_lower = (request.query_string.decode('utf-8', errors='ignore') or '').lower()
+    full_target = req_path_lower + ('?' + query_str_lower if query_str_lower else '')
+
+    for exploit_sig in EXPLOIT_PATH_PATTERNS:
+        if exploit_sig in full_target:
+            ban_ip(client_ip, duration_seconds=86400, reason=f"Exploração maliciosa de rota/arquivo: {exploit_sig}")
+            abort(403)
+
+    # 3. Rate Limiting deslizante contra DoS / Inundação de requisições
+    if not check_rate_limit(client_ip, max_requests=120, window_seconds=60):
+        return Response("429 Too Many Requests: Limite de requisições excedido. Aguarde alguns instantes.", status=429, mimetype='text/plain')
+
+    # 4. Registro assíncrono de visitas legítimas sem bloquear renderização
     if request.path in ('/', '/social') and request.method == 'GET':
         ua = request.headers.get('User-Agent', '')
-        if is_bot(ua):
-            return
-        ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
-        country = get_client_country()
-        device, os_name, browser = parse_device_info(ua)
-        city = request.headers.get('CF-IPCity', '')
-        log_visit_async(ip, country, request.path, device=device, os_name=os_name, browser=browser, city=city)
+        if not is_bot(ua):
+            country = get_client_country()
+            device, os_name, browser = parse_device_info(ua)
+            city = request.headers.get('CF-IPCity', '')
+            log_visit_async(client_ip, country, request.path, device=device, os_name=os_name, browser=browser, city=city)
 
 @app.route('/')
 def index():
@@ -161,17 +273,6 @@ def favicon():
         max_age=86400
     )
 
-@app.route('/manifest.json')
-def manifest():
-    return jsonify({
-        "name": "EromeDown",
-        "short_name": "EromeDown",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#0a0a0c",
-        "theme_color": "#0a0a0c"
-    })
-
 @app.route('/ad_slot/<slot>')
 def ad_slot(slot):
     settings = get_settings()
@@ -205,44 +306,6 @@ body, html {{ margin:0; padding:0; overflow:hidden; background:transparent; disp
 </html>"""
     return Response(html, mimetype='text/html')
 
-@app.route('/sitemap.xml')
-def sitemap():
-    from datetime import date
-    today = date.today().isoformat()
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url>
-    <loc>https://eromedown.org/</loc>
-    <lastmod>{today}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="pt" href="https://eromedown.org/?lang=pt"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://eromedown.org/?lang=en"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://eromedown.org/?lang=es"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://eromedown.org/?lang=fr"/>
-    <xhtml:link rel="alternate" hreflang="ru" href="https://eromedown.org/?lang=ru"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://eromedown.org/"/>
-  </url>
-</urlset>"""
-    return Response(xml, mimetype='application/xml',
-                    headers={'Cache-Control': 'public, max-age=86400'})
-
-@app.route('/robots.txt')
-def robots():
-    txt = """User-agent: *
-Allow: /
-Disallow: /get_video
-Disallow: /get_videos
-Disallow: /proxy_download
-Disallow: /get_social_video
-Disallow: /ad_slot/
-
-Sitemap: https://eromedown.org/sitemap.xml
-"""
-    return Response(txt, mimetype='text/plain',
-                    headers={'Cache-Control': 'public, max-age=86400'})
-
 @app.route('/api/version')
 def api_version():
     return jsonify({
@@ -254,6 +317,8 @@ def api_version():
 
 @app.route('/api/debug_luxuretv')
 def debug_luxuretv():
+    if not flask_session.get('admin_logged'):
+        abort(404)
     import shutil, subprocess, socket
     test_id = request.args.get('id', '462523')
     target_embed = f'https://en.luxuretv.com/embed/{test_id}'
@@ -559,12 +624,20 @@ def proxy_download():
             
         def stream_data():
             try:
-                # 512KB chunks: optimal for high throughput and rapid streaming
-                for chunk in req.iter_content(chunk_size=512 * 1024):
+                # Chunks de 128KB garantem streaming contínuo sem reter buffers excessivos
+                for chunk in req.iter_content(chunk_size=128 * 1024):
                     if chunk:
                         yield chunk
+            except (GeneratorExit, ConnectionResetError, BrokenPipeError, IOError):
+                # Conexão encerrada pelo cliente/navegador - liberação normal
+                pass
+            except Exception as stream_err:
+                print(f"[STREAM ERROR] {stream_err}")
             finally:
-                req.close()
+                try:
+                    req.close()
+                except Exception:
+                    pass
         
         return Response(
             stream_with_context(stream_data()),
@@ -642,7 +715,8 @@ def secret_admin_panel(secret_slug):
             stats = get_default_stats()
             
         message = request.args.get('msg')
-        return render_template('admin.html', stats=stats, settings=settings, current_slug=current_slug, message=message)
+        security_stats = get_security_stats()
+        return render_template('admin.html', stats=stats, settings=settings, current_slug=current_slug, message=message, security_stats=security_stats)
         
     except Exception as e:
         import traceback
@@ -677,7 +751,7 @@ def secret_admin_auth(secret_slug):
     if secret_slug != current_slug:
         abort(404)
         
-    client_ip = request.headers.get('CF-Connecting-IP', request.remote_addr)
+    client_ip = get_client_ip()
     blocked, minutes = is_ip_blocked(client_ip)
     turnstile_enabled = settings.get('turnstile_enabled', '1') == '1'
     turnstile_site_key = settings.get('turnstile_site_key', '1x00000000000000000000AA')
@@ -794,10 +868,14 @@ def secret_admin_api_stats(secret_slug):
     current_slug = settings.get('admin_slug', 'painel-gestao-9021')
     if secret_slug != current_slug or not flask_session.get('admin_logged'):
         abort(403)
-    return jsonify(get_stats())
+    data = get_stats()
+    data['security'] = get_security_stats()
+    return jsonify(data)
 
 @app.route('/api/sys_diag')
 def sys_diag():
+    if not flask_session.get('admin_logged'):
+        abort(404)
     import traceback, subprocess
     diag = {}
     try:

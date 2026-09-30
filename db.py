@@ -74,6 +74,21 @@ def init_db():
         if 'device' not in d_cols:
             try: cursor.execute('ALTER TABLE downloads ADD COLUMN device TEXT DEFAULT "Desktop"')
             except Exception: pass
+            
+        # Índices de Alta Performance para Aceleração Instantânea do Painel Admin
+        indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_visits_timestamp ON visits(timestamp);",
+            "CREATE INDEX IF NOT EXISTS idx_visits_country ON visits(country);",
+            "CREATE INDEX IF NOT EXISTS idx_visits_device ON visits(device);",
+            "CREATE INDEX IF NOT EXISTS idx_visits_os ON visits(os);",
+            "CREATE INDEX IF NOT EXISTS idx_visits_ip_timestamp ON visits(ip, timestamp);",
+            "CREATE INDEX IF NOT EXISTS idx_downloads_timestamp ON downloads(timestamp);",
+            "CREATE INDEX IF NOT EXISTS idx_downloads_country ON downloads(country);",
+            "CREATE INDEX IF NOT EXISTS idx_downloads_title ON downloads(title);"
+        ]
+        for idx in indexes:
+            try: cursor.execute(idx)
+            except Exception: pass
         
         # Códigos padrão Adsterra
         adsterra_popunder = '''<script src="https://pl31265096.profitableratecpmnetwork.com/6e/0f/1a/6e0f1afe4d28ef54382e19c46ef347be.js"></script>\n<script src="https://pl31265098.profitableratecpmnetwork.com/96/fe/d1/96fed15682f021cbc51e241b2d3f9ff8.js"></script>'''
@@ -350,6 +365,7 @@ def log_download(title, country, url=None, device='Desktop'):
                 VALUES (?, ?, ?, ?)
             ''', (title, country, url, device))
             conn.commit()
+        invalidate_stats_cache()
     except Exception as e:
         print("Erro log_download:", e)
 
@@ -398,15 +414,26 @@ def get_default_stats():
         'recent_downloads': []
     }
 
-def get_stats():
+_stats_cache = {'data': None, 'ts': 0}
+_STATS_CACHE_TTL = 30 # Cache de 30 segundos em memória (acesso instantâneo < 1ms)
+
+def invalidate_stats_cache():
+    _stats_cache['data'] = None
+
+def get_stats(force=False):
+    import time
+    now = time.time()
+    if not force and _stats_cache['data'] is not None and (now - _stats_cache['ts']) < _STATS_CACHE_TTL:
+        return _stats_cache['data']
+
     stats = get_default_stats()
     try:
         with get_db() as conn:
-            # 1. Visitas
+            # 1. Visitas (Consultas Otimizadas com B-Tree Range Search)
             try:
                 stats['total_visits'] = conn.execute('SELECT COUNT(*) FROM visits').fetchone()[0] or 0
-                stats['today_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now")').fetchone()[0] or 0
-                stats['yesterday_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE date(timestamp) = date("now", "-1 day")').fetchone()[0] or 0
+                stats['today_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= date("now")').fetchone()[0] or 0
+                stats['yesterday_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= date("now", "-1 day") AND timestamp < date("now")').fetchone()[0] or 0
                 stats['weekly_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
                 stats['monthly_visits'] = conn.execute('SELECT COUNT(*) FROM visits WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
                 
@@ -426,11 +453,11 @@ def get_stats():
             except Exception as e:
                 print(f"[STATS ERROR] Erro ativos: {e}")
 
-            # 3. Downloads
+            # 3. Downloads (Consultas Otimizadas com B-Tree Range Search)
             try:
                 stats['total_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads').fetchone()[0] or 0
-                stats['today_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now")').fetchone()[0] or 0
-                stats['yesterday_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE date(timestamp) = date("now", "-1 day")').fetchone()[0] or 0
+                stats['today_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= date("now")').fetchone()[0] or 0
+                stats['yesterday_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= date("now", "-1 day") AND timestamp < date("now")').fetchone()[0] or 0
                 stats['weekly_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-7 days")').fetchone()[0] or 0
                 stats['monthly_downloads'] = conn.execute('SELECT COUNT(*) FROM downloads WHERE timestamp >= datetime("now", "-30 days")').fetchone()[0] or 0
                 
@@ -681,6 +708,8 @@ def get_stats():
     except Exception as e:
         print(f"[STATS CRITICAL] Falha geral em get_stats: {e}")
         
+    _stats_cache['data'] = stats
+    _stats_cache['ts'] = time.time()
     return stats
 
 if __name__ == '__main__':

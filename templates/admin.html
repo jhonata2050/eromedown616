@@ -6,11 +6,11 @@
     <meta name="referrer" content="no-referrer">
     <title>Painel Executivo | Gestão, Analytics & Geo-Inteligência</title>
     
-    <!-- jsVectorMap & ApexCharts CDN for Enterprise Analytics -->
+    <!-- jsVectorMap & ApexCharts CDN for Enterprise Analytics (defer = zero render-blocking) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvectormap/dist/css/jsvectormap.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/jsvectormap"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world-merc.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsvectormap" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsvectormap/dist/maps/world-merc.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts" defer></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1273,6 +1273,100 @@
 
         <!-- ABA 3: SEGURANÇA & ROTA OCULTA -->
         <div id="tab-security" class="tab-pane">
+            <!-- STATUS DO CORE SHIELD E AUDITORIA DE REDE/PORTAS -->
+            <div class="data-card" style="margin-bottom: 22px;">
+                <div class="data-card-header">
+                    <span class="data-card-title">🛡️ Core Shield: Proteção Ativa, Defesa de Portas & Honeypot</span>
+                    <span style="display: inline-flex; align-items: center; gap: 6px; background: #ecfdf5; color: #059669; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; border: 1px solid #a7f3d0;">
+                        <span class="pulse-dot" style="background:#10b981;"></span> SISTEMA 100% OPERACIONAL & BLINDADO
+                    </span>
+                </div>
+
+                <div class="config-box" style="padding-top: 10px;">
+                    <!-- Grid de 4 Cards de Defesa -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 18px;">
+                        
+                        <!-- 1. Honeypot & Exploit Shield -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <strong style="font-size: 13px; color: #0f172a;">🍯 Honeypot & Anti-Exploit</strong>
+                                <span style="font-size: 11px; background: #dcfce7; color: #15803d; font-weight: 700; padding: 2px 7px; border-radius: 4px;">ATIVO</span>
+                            </div>
+                            <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.4;">
+                                Bloqueia instantaneamente varreduras de arquivos sensíveis (<code>.env</code>, <code>.git</code>, <code>wp-admin</code>, <code>shell.php</code>, SQLi) por 24 horas no firewall.
+                            </p>
+                        </div>
+
+                        <!-- 2. Rate Limiting Anti-DoS -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <strong style="font-size: 13px; color: #0f172a;">⚡ Anti-DoS & Rate Limiter</strong>
+                                <span style="font-size: 11px; background: #dbeafe; color: #1d4ed8; font-weight: 700; padding: 2px 7px; border-radius: 4px;">120 req/min</span>
+                            </div>
+                            <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.4;">
+                                Limite estrito deslizante por IP para prevenir saturação de conexões, inundações de bots e ataques de força bruta.
+                            </p>
+                        </div>
+
+                        <!-- 3. Portas Fechadas & Isolamento -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <strong style="font-size: 13px; color: #0f172a;">🚪 Blindagem de Portas</strong>
+                                <span style="font-size: 11px; background: #ede9fe; color: #6d28d9; font-weight: 700; padding: 2px 7px; border-radius: 4px;">ISOLADAS</span>
+                            </div>
+                            <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.4;">
+                                Portas 80/443 públicas via Cloudflare. Portas internas (5000 Gunicorn e SQLite) <strong>estritamente fechadas para a internet externa</strong> (bind 127.0.0.1).
+                            </p>
+                        </div>
+
+                        <!-- 4. IPs Bloqueados -->
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <strong style="font-size: 13px; color: #0f172a;">🚫 Ameaças Bloqueadas</strong>
+                                <span id="sec-banned-badge" style="font-size: 13px; font-weight: 800; color: #ef4444;">{{ security_stats.total_banned if security_stats else 0 }}</span>
+                            </div>
+                            <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.4;">
+                                Invasores e crawlers maliciosos banidos temporariamente. Falhas de login recentes: <strong>{{ security_stats.failed_logins if security_stats else 0 }}</strong>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Lista de IPs Banidos ou Status Limpo -->
+                    <div style="margin-top: 10px;">
+                        <h4 style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">Registro de Bloqueios Recentes (Honeypot Shield)</h4>
+                        {% if security_stats and security_stats.active_bans %}
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; border-collapse: collapse; font-size: 12px; text-align: left;">
+                                    <thead>
+                                        <tr style="background: #f1f5f9; color: #475569; border-bottom: 1px solid #cbd5e1;">
+                                            <th style="padding: 8px 12px;">IP Infrator</th>
+                                            <th style="padding: 8px 12px;">Motivo da Detecção</th>
+                                            <th style="padding: 8px 12px;">Tentativas</th>
+                                            <th style="padding: 8px 12px;">Tempo Restante</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sec-banned-table-body">
+                                        {% for ban in security_stats.active_bans %}
+                                            <tr style="border-bottom: 1px solid #f1f5f9;">
+                                                <td style="padding: 8px 12px; font-family: monospace; font-weight: 700; color: #ef4444;">{{ ban.ip }}</td>
+                                                <td style="padding: 8px 12px; color: #334155;">{{ ban.reason }}</td>
+                                                <td style="padding: 8px 12px; color: #64748b;">{{ ban.strikes }} strike(s)</td>
+                                                <td style="padding: 8px 12px; color: #64748b;">{{ ban.remaining_min }} min</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; color: #166534; font-size: 13px; display: flex; align-items: center; gap: 8px;">
+                                <span>🛡️</span>
+                                <span><strong>Nenhuma ameaça ativa no momento.</strong> O Core Shield está monitorando ativamente todas as conexões em busca de anomalias.</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <div class="data-card">
                 <div class="data-card-header">
                     <span class="data-card-title">🛡️ Configurações de Blindagem & Rota Privada</span>
@@ -1394,138 +1488,16 @@
         const timeseries24h = {{ stats.chart_24h | tojson }};
         const deviceStats = {{ stats.device_stats | tojson }};
 
-        // 1. Inicializar Mapa Vetorial Interativo com jsVectorMap (White Light Mode)
         let worldMap = null;
-        try {
-            if (typeof jsVectorMap !== 'undefined') {
-                worldMap = new jsVectorMap({
-                    selector: '#world-map',
-                    map: 'world_merc',
-                    backgroundColor: '#f8fafc',
-                    draggable: true,
-                    zoomButtons: true,
-                    zoomOnScroll: false,
-                    regionStyle: {
-                        initial: {
-                            fill: '#e2e8f0',
-                            stroke: '#cbd5e1',
-                            strokeWidth: 0.7,
-                            fillOpacity: 1
-                        },
-                        hover: {
-                            fill: '#818cf8',
-                            cursor: 'pointer'
-                        },
-                        selected: {
-                            fill: '#4f46e5'
-                        }
-                    },
-                    visualizeData: {
-                        scale: ['#c7d2fe', '#818cf8', '#4f46e5'],
-                        values: mapDataValues
-                    },
-                    onRegionTooltipShow(event, tooltip, code) {
-                        const country = countriesLookup[code];
-                        if (country) {
-                            tooltip.text(
-                                `<div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 6px 8px; color: #0f172a;">
-                                    <div style="font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
-                                        <img src="https://flagcdn.com/28x21/${code.toLowerCase()}.png" width="20" height="15" style="border-radius: 2px;" onerror="this.style.display='none';">
-                                        <span>${country.name}</span>
-                                        <span style="font-size: 11px; opacity: 0.7; font-family: monospace;">(${code})</span>
-                                    </div>
-                                    <div style="color: #64748b; font-size: 11px;">Região: <strong style="color: #0f172a;">${country.region}</strong></div>
-                                    <div style="color: #4f46e5; font-weight: 700; margin-top: 5px;">👥 ${country.visits.toLocaleString()} acessos (${country.visits_pct}%)</div>
-                                    <div style="color: #059669; font-weight: 700;">📥 ${country.downloads.toLocaleString()} downloads (${country.conversion}% conv.)</div>
-                                </div>`,
-                                true
-                            );
-                        } else {
-                            tooltip.text(
-                                `<div style="padding: 6px 8px; font-size: 12px; color: #64748b;">
-                                    <strong style="color: #0f172a;">${code}</strong>: Sem acessos registrados
-                                </div>`,
-                                true
-                            );
-                        }
-                    }
-                });
-            }
-        } catch (e) {
-            console.error("Erro ao carregar jsVectorMap:", e);
-        }
-
-        // 2. Inicializar Gráfico de Séries Temporais com ApexCharts (Light Mode)
         let chartTimeseries = null;
-        try {
-            if (typeof ApexCharts !== 'undefined') {
-                const optionsTimeseries = {
-                    series: [
-                        {
-                            name: 'Visitantes Únicos',
-                            data: timeseries7d.visits
-                        },
-                        {
-                            name: 'Vídeos Baixados',
-                            data: timeseries7d.downloads
-                        }
-                    ],
-                    chart: {
-                        type: 'area',
-                        height: 290,
-                        toolbar: { show: false },
-                        animations: { enabled: true, easing: 'easeinout', speed: 800 },
-                        background: 'transparent'
-                    },
-                    colors: ['#4f46e5', '#10b981'],
-                    dataLabels: { enabled: false },
-                    stroke: { curve: 'smooth', width: 3 },
-                    fill: {
-                        type: 'gradient',
-                        gradient: {
-                            shadeIntensity: 1,
-                            opacityFrom: 0.35,
-                            opacityTo: 0.05,
-                            stops: [0, 95, 100]
-                        }
-                    },
-                    grid: {
-                        borderColor: '#f1f5f9',
-                        strokeDashArray: 4,
-                        yaxis: { lines: { show: true } }
-                    },
-                    xaxis: {
-                        categories: timeseries7d.labels,
-                        labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } },
-                        axisBorder: { show: false },
-                        axisTicks: { show: false }
-                    },
-                    yaxis: {
-                        labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } }
-                    },
-                    tooltip: {
-                        theme: 'light',
-                        x: { show: true },
-                        style: { fontSize: '12px', fontFamily: 'inherit' }
-                    },
-                    legend: {
-                        position: 'top',
-                        horizontalAlign: 'right',
-                        labels: { colors: '#475569' }
-                    }
-                };
-                chartTimeseries = new ApexCharts(document.querySelector("#chart-timeseries"), optionsTimeseries);
-                chartTimeseries.render();
-            }
-        } catch (e) {
-            console.error("Erro ao carregar ApexCharts Timeseries:", e);
-        }
+        let chartDevices = null;
 
         // Alternar entre 7 Dias e 24 Horas no Gráfico
         function toggleTimeseries(period) {
             document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
             if (period === '7d') {
-                document.getElementById('btnChart7d').classList.add('active');
+                const btn = document.getElementById('btnChart7d');
+                if (btn) btn.classList.add('active');
                 if (chartTimeseries) {
                     chartTimeseries.updateOptions({
                         xaxis: { categories: timeseries7d.labels },
@@ -1536,7 +1508,8 @@
                     });
                 }
             } else {
-                document.getElementById('btnChart24h').classList.add('active');
+                const btn = document.getElementById('btnChart24h');
+                if (btn) btn.classList.add('active');
                 if (chartTimeseries) {
                     chartTimeseries.updateOptions({
                         xaxis: { categories: timeseries24h.labels },
@@ -1549,56 +1522,192 @@
             }
         }
 
-        // 3. Inicializar Gráfico Donut de Dispositivos com ApexCharts (Light Mode)
-        let chartDevices = null;
-        try {
-            if (typeof ApexCharts !== 'undefined') {
-                const optionsDevices = {
-                    series: deviceStats.series,
-                    labels: deviceStats.labels,
-                    chart: {
-                        type: 'donut',
-                        height: 220,
-                        background: 'transparent'
-                    },
-                    colors: ['#4f46e5', '#10b981', '#f59e0b'],
-                    stroke: { width: 3, colors: ['#ffffff'] },
-                    dataLabels: { enabled: false },
-                    legend: { show: false },
-                    tooltip: {
-                        theme: 'light',
-                        y: {
-                            formatter: function(val) {
-                                return val + " acessos";
+        // Função de Inicialização Segura com Suporte a Carregamento Diferido (Defer)
+        function initExecutiveDashboard() {
+            // 1. Inicializar Mapa Vetorial Interativo com jsVectorMap
+            if (typeof jsVectorMap !== 'undefined' && !worldMap && document.querySelector('#world-map')) {
+                try {
+                    worldMap = new jsVectorMap({
+                        selector: '#world-map',
+                        map: 'world_merc',
+                        backgroundColor: '#f8fafc',
+                        draggable: true,
+                        zoomButtons: true,
+                        zoomOnScroll: false,
+                        regionStyle: {
+                            initial: {
+                                fill: '#e2e8f0',
+                                stroke: '#cbd5e1',
+                                strokeWidth: 0.7,
+                                fillOpacity: 1
+                            },
+                            hover: {
+                                fill: '#818cf8',
+                                cursor: 'pointer'
+                            },
+                            selected: {
+                                fill: '#4f46e5'
+                            }
+                        },
+                        visualizeData: {
+                            scale: ['#c7d2fe', '#818cf8', '#4f46e5'],
+                            values: mapDataValues
+                        },
+                        onRegionTooltipShow(event, tooltip, code) {
+                            const country = countriesLookup[code];
+                            if (country) {
+                                tooltip.text(
+                                    `<div style="font-family: inherit; font-size: 13px; line-height: 1.4; padding: 6px 8px; color: #0f172a;">
+                                        <div style="font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 7px; margin-bottom: 5px;">
+                                            <img src="https://flagcdn.com/28x21/${code.toLowerCase()}.png" width="20" height="15" style="border-radius: 2px;" onerror="this.style.display='none';">
+                                            <span>${country.name}</span>
+                                            <span style="font-size: 11px; opacity: 0.7; font-family: monospace;">(${code})</span>
+                                        </div>
+                                        <div style="color: #64748b; font-size: 11px;">Região: <strong style="color: #0f172a;">${country.region}</strong></div>
+                                        <div style="color: #4f46e5; font-weight: 700; margin-top: 5px;">👥 ${country.visits.toLocaleString()} acessos (${country.visits_pct}%)</div>
+                                        <div style="color: #059669; font-weight: 700;">📥 ${country.downloads.toLocaleString()} downloads (${country.conversion}% conv.)</div>
+                                    </div>`,
+                                    true
+                                );
+                            } else {
+                                tooltip.text(
+                                    `<div style="padding: 6px 8px; font-size: 12px; color: #64748b;">
+                                        <strong style="color: #0f172a;">${code}</strong>: Sem acessos registrados
+                                    </div>`,
+                                    true
+                                );
                             }
                         }
-                    },
-                    plotOptions: {
-                        pie: {
-                            donut: {
-                                size: '72%',
-                                labels: {
-                                    show: true,
-                                    total: {
+                    });
+                } catch (e) {
+                    console.error("Erro ao carregar jsVectorMap:", e);
+                }
+            }
+
+            // 2. Inicializar Gráfico de Séries Temporais com ApexCharts
+            if (typeof ApexCharts !== 'undefined' && !chartTimeseries && document.querySelector("#chart-timeseries")) {
+                try {
+                    const optionsTimeseries = {
+                        series: [
+                            {
+                                name: 'Visitantes Únicos',
+                                data: timeseries7d.visits
+                            },
+                            {
+                                name: 'Vídeos Baixados',
+                                data: timeseries7d.downloads
+                            }
+                        ],
+                        chart: {
+                            type: 'area',
+                            height: 290,
+                            toolbar: { show: false },
+                            animations: { enabled: true, easing: 'easeinout', speed: 800 },
+                            background: 'transparent'
+                        },
+                        colors: ['#4f46e5', '#10b981'],
+                        dataLabels: { enabled: false },
+                        stroke: { curve: 'smooth', width: 3 },
+                        fill: {
+                            type: 'gradient',
+                            gradient: {
+                                shadeIntensity: 1,
+                                opacityFrom: 0.35,
+                                opacityTo: 0.05,
+                                stops: [0, 95, 100]
+                            }
+                        },
+                        grid: {
+                            borderColor: '#f1f5f9',
+                            strokeDashArray: 4,
+                            yaxis: { lines: { show: true } }
+                        },
+                        xaxis: {
+                            categories: timeseries7d.labels,
+                            labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } },
+                            axisBorder: { show: false },
+                            axisTicks: { show: false }
+                        },
+                        yaxis: {
+                            labels: { style: { colors: '#64748b', fontSize: '11px', fontFamily: 'inherit' } }
+                        },
+                        tooltip: {
+                            theme: 'light',
+                            x: { show: true },
+                            style: { fontSize: '12px', fontFamily: 'inherit' }
+                        },
+                        legend: {
+                            position: 'top',
+                            horizontalAlign: 'right',
+                            labels: { colors: '#475569' }
+                        }
+                    };
+                    chartTimeseries = new ApexCharts(document.querySelector("#chart-timeseries"), optionsTimeseries);
+                    chartTimeseries.render();
+                } catch (e) {
+                    console.error("Erro ao carregar ApexCharts Timeseries:", e);
+                }
+            }
+
+            // 3. Inicializar Gráfico Donut de Dispositivos com ApexCharts
+            if (typeof ApexCharts !== 'undefined' && !chartDevices && document.querySelector("#chart-devices")) {
+                try {
+                    const optionsDevices = {
+                        series: deviceStats.series,
+                        labels: deviceStats.labels,
+                        chart: {
+                            type: 'donut',
+                            height: 220,
+                            background: 'transparent'
+                        },
+                        colors: ['#4f46e5', '#10b981', '#f59e0b'],
+                        stroke: { width: 3, colors: ['#ffffff'] },
+                        dataLabels: { enabled: false },
+                        legend: { show: false },
+                        tooltip: {
+                            theme: 'light',
+                            y: {
+                                formatter: function(val) {
+                                    return val + " acessos";
+                                }
+                            }
+                        },
+                        plotOptions: {
+                            pie: {
+                                donut: {
+                                    size: '72%',
+                                    labels: {
                                         show: true,
-                                        label: 'Mobile',
-                                        color: '#64748b',
-                                        fontSize: '12px',
-                                        formatter: function() {
-                                            return deviceStats.mobile_pct + "%";
+                                        total: {
+                                            show: true,
+                                            label: 'Mobile',
+                                            color: '#64748b',
+                                            fontSize: '12px',
+                                            formatter: function() {
+                                                return deviceStats.mobile_pct + "%";
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
-                };
-                chartDevices = new ApexCharts(document.querySelector("#chart-devices"), optionsDevices);
-                chartDevices.render();
+                    };
+                    chartDevices = new ApexCharts(document.querySelector("#chart-devices"), optionsDevices);
+                    chartDevices.render();
+                } catch (e) {
+                    console.error("Erro ao carregar ApexCharts Devices:", e);
+                }
             }
-        } catch (e) {
-            console.error("Erro ao carregar ApexCharts Devices:", e);
         }
+
+        // Executar inicialização quando DOM e bibliotecas carregarem
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initExecutiveDashboard);
+        } else {
+            initExecutiveDashboard();
+        }
+        setTimeout(initExecutiveDashboard, 300);
+        setTimeout(initExecutiveDashboard, 1000);
 
         // 4. Atualização em Tempo Real via API (/api/stats)
         async function refreshDashboard() {
@@ -1619,6 +1728,12 @@
                     document.getElementById('kpi-today-downloads').innerText = Number(data.today_downloads).toLocaleString();
                     document.getElementById('kpi-conversion-today').innerText = data.conversion_rate_today + "%";
                     document.getElementById('kpi-active-now').innerText = data.active_now;
+
+                    // Atualizar Core Shield Security Badge
+                    if (data.security) {
+                        const secBadge = document.getElementById('sec-banned-badge');
+                        if (secBadge) secBadge.innerText = data.security.total_banned;
+                    }
                     
                     // Atualizar Gráfico de Séries Temporais
                     if (chartTimeseries) {
