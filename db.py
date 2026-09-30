@@ -1,6 +1,7 @@
 import sqlite3
 import os
 import re
+import time
 import urllib.parse
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -75,6 +76,16 @@ def init_db():
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS banned_ips (
+                ip TEXT PRIMARY KEY,
+                reason TEXT DEFAULT '',
+                strikes INTEGER DEFAULT 1,
+                blocked_until REAL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         
         # Migração automática se as tabelas já existirem sem as novas colunas
         cursor.execute("PRAGMA table_info(visits)")
@@ -142,11 +153,24 @@ def init_db():
             "CREATE INDEX IF NOT EXISTS idx_downloads_timestamp ON downloads(timestamp);",
             "CREATE INDEX IF NOT EXISTS idx_downloads_country ON downloads(country);",
             "CREATE INDEX IF NOT EXISTS idx_downloads_title ON downloads(title);",
-            "CREATE INDEX IF NOT EXISTS idx_downloads_is_admin ON downloads(is_admin);"
+            "CREATE INDEX IF NOT EXISTS idx_downloads_is_admin ON downloads(is_admin);",
+            "CREATE INDEX IF NOT EXISTS idx_banned_ips_blocked ON banned_ips(blocked_until);"
         ]
         for idx in indexes:
             try: cursor.execute(idx)
             except Exception: pass
+            
+        # Preserva e inicializa o IP 47.77.217.213 (do Honeypot Shield) se ainda não registrado
+        try:
+            cursor.execute("SELECT ip FROM banned_ips WHERE ip = '47.77.217.213'")
+            if not cursor.fetchone():
+                cursor.execute('''
+                    INSERT INTO banned_ips (ip, reason, strikes, blocked_until, created_at)
+                    VALUES ('47.77.217.213', 'Exploração maliciosa de rota/arquivo: eval-stdin', 1, ?, CURRENT_TIMESTAMP)
+                ''', (time.time() + 86400,))
+                conn.commit()
+        except Exception:
+            pass
         
         # Códigos padrão Adsterra
         adsterra_popunder = '''<script src="https://pl31265096.profitableratecpmnetwork.com/6e/0f/1a/6e0f1afe4d28ef54382e19c46ef347be.js"></script>\n<script src="https://pl31265098.profitableratecpmnetwork.com/96/fe/d1/96fed15682f021cbc51e241b2d3f9ff8.js"></script>'''
@@ -279,6 +303,64 @@ def verify_admin_credentials(username, plain_password):
 
 def verify_admin_password(plain_password):
     return verify_admin_credentials('admin', plain_password)
+
+# ==============================================================================
+# GESTÃO PERSISTENTE DE IPS BLOQUEADOS (HONEYPOT & FIREWALL SHIELD)
+# ==============================================================================
+def db_ban_ip(ip, duration_seconds=86400, reason='Tentativa de invasão'):
+    """Registra ou atualiza um IP banido persistentemente no SQLite (sobrevive a reboots)."""
+    now = time.time()
+    blocked_until = now + duration_seconds
+    try:
+        with get_db() as conn:
+            conn.execute('''
+                INSERT INTO banned_ips (ip, reason, strikes, blocked_until, created_at)
+                VALUES (?, ?, 1, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(ip) DO UPDATE SET
+                    strikes = banned_ips.strikes + 1,
+                    blocked_until = excluded.blocked_until,
+                    reason = excluded.reason
+            ''', (ip, reason, blocked_until))
+            conn.commit()
+    except Exception as e:
+        print(f"[DB BAN ERROR] Falha ao persistir banimento do IP {ip}: {e}")
+
+def db_unban_ip(ip):
+    """Remove o bloqueio de um IP no banco de dados SQLite."""
+    try:
+        with get_db() as conn:
+            conn.execute('DELETE FROM banned_ips WHERE ip = ?', (ip,))
+            conn.commit()
+    except Exception as e:
+        print(f"[DB UNBAN ERROR] Falha ao desbanir IP {ip}: {e}")
+
+def db_get_active_bans():
+    """Retorna todos os bloqueios ativos no SQLite e limpa bans expirados há mais de 1h."""
+    now = time.time()
+    bans = {}
+    try:
+        with get_db() as conn:
+            # Auto-limpeza de registros antigos expirados para não acumular lixo
+            conn.execute('DELETE FROM banned_ips WHERE blocked_until <= ?', (now - 3600,))
+            conn.commit()
+            
+            rows = conn.execute('''
+                SELECT ip, reason, strikes, blocked_until
+                FROM banned_ips
+                WHERE blocked_until > ?
+                ORDER BY blocked_until DESC
+            ''', (now,)).fetchall()
+            
+            for r in rows:
+                bans[r['ip']] = {
+                    'ip': r['ip'],
+                    'reason': r['reason'] or 'Atividade maliciosa detectada',
+                    'strikes': r['strikes'] or 1,
+                    'blocked_until': float(r['blocked_until'])
+                }
+    except Exception as e:
+        print(f"[DB ACTIVE BANS ERROR] {e}")
+    return bans
 
 # Mapeamento completo ISO 3166-1 alpha-2 para Países, Bandeiras e Continentes
 COUNTRIES_MAP = {

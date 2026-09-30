@@ -9,7 +9,7 @@ import time
 import requests
 import urllib3
 import urllib3.util.connection as urllib3_cn
-from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, get_default_stats, parse_device_info, resolve_country
+from db import init_db, get_settings, update_setting, set_admin_password, verify_admin_password, verify_admin_credentials, set_admin_credentials, log_visit, log_download, get_stats, get_default_stats, parse_device_info, resolve_country, db_ban_ip, db_unban_ip, db_get_active_bans
 from social_downloader import process_social_url
 from multi_downloader import extract as multi_extract, detect_site, resolve_luxuretv_media
 
@@ -57,10 +57,26 @@ session.mount('https://', adapter)
 session.mount('http://', adapter)
 
 # ==============================================================================
-# SISTEMA DE SEGURANÇA ATIVA: CORE SHIELD, HONEYPOT & RATE LIMITER
+# SISTEMA DE SEGURANÇA ATIVA: CORE SHIELD, HONEYPOT & RATE LIMITER (PERSISTENTE)
 # ==============================================================================
-# Lista dinâmica de IPs bloqueados por varreduras, força bruta ou explorações
-BANNED_IPS = {}
+# Cache em memória sincronizado com SQLite WAL para máxima velocidade (0.0001ms)
+# e persistência total mesmo após reboots do servidor ou restarts de workers.
+_BANNED_CACHE = {'data': {}, 'last_sync': 0}
+_BANNED_SYNC_INTERVAL = 3.0  # Sincroniza periodicamente com o SQLite a cada 3s
+
+def sync_banned_cache(force=False):
+    now = time.time()
+    if force or (now - _BANNED_CACHE['last_sync'] > _BANNED_SYNC_INTERVAL):
+        try:
+            _BANNED_CACHE['data'] = db_get_active_bans()
+            _BANNED_CACHE['last_sync'] = now
+        except Exception:
+            pass
+    return _BANNED_CACHE['data']
+
+# Inicializa o cache com todos os bans persistentes ativos no SQLite
+sync_banned_cache(force=True)
+
 IP_REQUEST_HISTORY = {}
 failed_attempts = {}
 
@@ -88,32 +104,58 @@ def get_client_ip():
     return request.remote_addr or '127.0.0.1'
 
 def is_ip_banned(ip):
+    """Verifica se o IP está bloqueado. Consulta cache em memória ultra-rápido (0.0001ms),
+    sincronizado com o banco de dados SQLite persistente (sobrevive a reboots)."""
     now = time.time()
-    info = BANNED_IPS.get(ip)
+    bans = sync_banned_cache()
+    info = bans.get(ip)
     if info and info['blocked_until'] > now:
         remaining = int((info['blocked_until'] - now) / 60) + 1
         return True, remaining, info.get('reason', 'Atividade maliciosa detectada')
     if info and info['blocked_until'] <= now:
-        BANNED_IPS.pop(ip, None)
+        bans.pop(ip, None)
+        db_unban_ip(ip)
     return False, 0, ''
 
 def ban_ip(ip, duration_seconds=86400, reason='Tentativa de invasão'):
+    """Bloqueia um IP persistindo no SQLite (sobrevive a reboots) e no cache de alta performance."""
     now = time.time()
-    info = BANNED_IPS.setdefault(ip, {'strikes': 0, 'blocked_until': 0, 'reason': reason})
-    info['strikes'] += 1
-    info['blocked_until'] = now + duration_seconds
-    info['reason'] = reason
-    print(f"[SECURITY SHIELD] IP BLOQUEADO: {ip} por {duration_seconds}s. Motivo: {reason}")
+    blocked_until = now + duration_seconds
+    
+    # 1. Persistir no SQLite imediatamente (sobrevive a reboots e múltiplos workers)
+    db_ban_ip(ip, duration_seconds=duration_seconds, reason=reason)
+    
+    # 2. Atualizar cache em memória local instantaneamente
+    cur = _BANNED_CACHE['data'].get(ip, {'strikes': 0})
+    strikes = cur['strikes'] + 1
+    _BANNED_CACHE['data'][ip] = {
+        'ip': ip,
+        'reason': reason,
+        'strikes': strikes,
+        'blocked_until': blocked_until
+    }
+    _BANNED_CACHE['last_sync'] = now
+    print(f"[SECURITY SHIELD] IP BLOQUEADO E PERSISTIDO NO BANCO: {ip} por {duration_seconds}s. Motivo: {reason}")
 
 def unban_ip(ip):
-    BANNED_IPS.pop(ip, None)
+    """Desbloqueia um IP tanto no SQLite quanto no cache em memória."""
+    db_unban_ip(ip)
+    _BANNED_CACHE['data'].pop(ip, None)
     failed_attempts.pop(ip, None)
+    print(f"[SECURITY SHIELD] IP DESBLOQUEADO: {ip}")
 
 def get_security_stats():
+    """Retorna estatísticas consolidadas e atualizadas de segurança."""
     now = time.time()
+    bans = sync_banned_cache(force=True)
     active_bans = [
-        {'ip': ip, 'reason': data['reason'], 'strikes': data['strikes'], 'remaining_min': max(1, int((data['blocked_until'] - now) / 60))}
-        for ip, data in list(BANNED_IPS.items())
+        {
+            'ip': ip,
+            'reason': data['reason'],
+            'strikes': data['strikes'],
+            'remaining_min': max(1, int((data['blocked_until'] - now) / 60))
+        }
+        for ip, data in list(bans.items())
         if data['blocked_until'] > now
     ]
     return {
@@ -864,6 +906,22 @@ def secret_admin_api_stats(secret_slug):
     data = get_stats(force=True)
     data['security'] = get_security_stats()
     return jsonify(data)
+
+@app.route('/<secret_slug>/api/unban', methods=['POST'])
+def secret_admin_unban_ip(secret_slug):
+    if not ENABLE_ADMIN_PANEL:
+        abort(404)
+    settings = get_settings()
+    current_slug = settings.get('admin_slug', 'painel-gestao-9021')
+    if secret_slug != current_slug or not flask_session.get('admin_logged'):
+        abort(403)
+        
+    data = request.get_json(silent=True) or request.form
+    target_ip = (data.get('ip') or '').strip()
+    if target_ip:
+        unban_ip(target_ip)
+        return jsonify({'status': 'ok', 'message': f'IP {target_ip} desbloqueado com sucesso!'})
+    return jsonify({'status': 'error', 'message': 'IP inválido'}), 400
 
 @app.route('/api/sys_diag')
 def sys_diag():

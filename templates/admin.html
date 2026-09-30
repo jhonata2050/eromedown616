@@ -1350,6 +1350,7 @@
                                             <th style="padding: 8px 12px;">Motivo da Detecção</th>
                                             <th style="padding: 8px 12px;">Tentativas</th>
                                             <th style="padding: 8px 12px;">Tempo Restante</th>
+                                            <th style="padding: 8px 12px; text-align: right;">Ação</th>
                                         </tr>
                                     </thead>
                                     <tbody id="sec-banned-table-body">
@@ -1359,6 +1360,11 @@
                                                 <td style="padding: 8px 12px; color: #334155;">{{ ban.reason }}</td>
                                                 <td style="padding: 8px 12px; color: #64748b;">{{ ban.strikes }} strike(s)</td>
                                                 <td style="padding: 8px 12px; color: #64748b;">{{ ban.remaining_min }} min</td>
+                                                <td style="padding: 8px 12px; text-align: right;">
+                                                    <button type="button" onclick="unbanIp('{{ ban.ip }}')" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                                        🔓 Desbloquear
+                                                    </button>
+                                                </td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>
@@ -1736,10 +1742,27 @@
                     document.getElementById('kpi-conversion-today').innerText = data.conversion_rate_today + "%";
                     document.getElementById('kpi-active-now').innerText = data.active_now;
 
-                    // Atualizar Core Shield Security Badge
+                    // Atualizar Core Shield Security Badge e Tabela
                     if (data.security) {
                         const secBadge = document.getElementById('sec-banned-badge');
                         if (secBadge) secBadge.innerText = data.security.total_banned;
+                        
+                        const tableBody = document.getElementById('sec-banned-table-body');
+                        if (tableBody && data.security.active_bans) {
+                            tableBody.innerHTML = data.security.active_bans.map(ban => `
+                                <tr style="border-bottom: 1px solid #f1f5f9;">
+                                    <td style="padding: 8px 12px; font-family: monospace; font-weight: 700; color: #ef4444;">${ban.ip}</td>
+                                    <td style="padding: 8px 12px; color: #334155;">${ban.reason}</td>
+                                    <td style="padding: 8px 12px; color: #64748b;">${ban.strikes} strike(s)</td>
+                                    <td style="padding: 8px 12px; color: #64748b;">${ban.remaining_min} min</td>
+                                    <td style="padding: 8px 12px; text-align: right;">
+                                        <button type="button" onclick="unbanIp('${ban.ip}')" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                                            🔓 Desbloquear
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join('');
+                        }
                     }
                     
                     // Atualizar Gráfico de Séries Temporais
@@ -1767,6 +1790,26 @@
                 if (icon) {
                     setTimeout(() => { icon.style.animation = ''; }, 600);
                 }
+            }
+        }
+
+        async function unbanIp(ip) {
+            if (!confirm(`Deseja realmente desbloquear o IP ${ip}?`)) return;
+            try {
+                const res = await fetch('/{{ current_slug }}/api/unban', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ ip: ip })
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    alert(data.message);
+                    refreshDashboard();
+                } else {
+                    alert(data.message || 'Erro ao desbloquear IP');
+                }
+            } catch (err) {
+                alert('Erro ao conectar ao servidor: ' + err);
             }
         }
 
