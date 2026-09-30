@@ -1,6 +1,7 @@
 import sqlite3, os
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "analytics.db")
+DATA_DIR = os.environ.get('DATA_DIR', os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.environ.get('DB_PATH') or os.path.join(DATA_DIR, "analytics.db")
 
 conn = sqlite3.connect(DB_PATH)
 cur = conn.cursor()

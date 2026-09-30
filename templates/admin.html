@@ -859,7 +859,9 @@
                     </div>
                     <div class="kpi-value" id="kpi-today-downloads">{{ "{:,}".format(stats.today_downloads or 0) }}</div>
                     <div class="kpi-sub">
-                        <span>📥 Ontem: <strong>{{ "{:,}".format(stats.yesterday_downloads or 0) }}</strong></span>
+                        <span>🟢 Clientes: <strong style="color: #059669;">{{ "{:,}".format(stats.client_downloads_today or 0) }}</strong></span>
+                        <span>•</span>
+                        <span>🟣 Testes: <strong style="color: #6366f1;">{{ "{:,}".format(stats.admin_downloads_today or 0) }}</strong></span>
                         <span>•</span>
                         <span>Total: <strong>{{ "{:,}".format(stats.total_downloads or 0) }}</strong></span>
                     </div>
@@ -1164,6 +1166,11 @@
                                             🎬 {{ d.title }}
                                         </span>
                                         <span style="color: #64748b; font-size: 11px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                            {% if d.is_client %}
+                                                <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 4px; padding: 1px 6px; font-weight: 700; font-size: 10px;">🟢 CLIENTE ({{ d.ip_masked }})</span>
+                                            {% else %}
+                                                <span style="background: #eef2ff; color: #6366f1; border: 1px solid #c7d2fe; border-radius: 4px; padding: 1px 6px; font-weight: 700; font-size: 10px;">🟣 SEU TESTE (ADMIN)</span>
+                                            {% endif %}
                                             <img src="https://flagcdn.com/20x15/{{ d.country_code }}.png" width="16" height="12" style="border-radius: 2px; vertical-align: middle;" alt="{{ d.country_name }}" onerror="this.style.display='none';">
                                             <strong>{{ d.country_name }}</strong>
                                             <span>•</span>

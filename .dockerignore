@@ -1,0 +1,37 @@
+# Docker build ignore list
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-*
+
+# Local database and dynamic data
+analytics.db
+analytics.db-journal
+analytics.db-wal
+analytics.db-shm
+data/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Test & Benchmark scripts
+bench_*.py
+test_*.py
